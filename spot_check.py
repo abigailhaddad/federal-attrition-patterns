@@ -12,11 +12,11 @@ CURRENT = {ds: {x["year"] + x["month"]: x["version"] for x in json.load(urllib.r
            for ds in ("separations", "accessions", "employment")}
 
 
-def opm(ds, ym, cols):
+def opm(ds, ym, cols, perm=True):
     with urllib.request.urlopen(f"{OPM}/{ds}/{ym[:4]}/{ym[4:]}/{CURRENT[ds][ym]}/download", timeout=600) as r:
         df = pd.read_parquet(io.BytesIO(r.read()), columns=cols)
     df["count"] = df["count"].astype(int)
-    return df[df.appointment_type_code.astype(str).isin(PERM)]
+    return df[df.appointment_type_code.astype(str).isin(PERM)] if perm else df
 
 
 def svc(df, day):
@@ -72,7 +72,8 @@ old = sep[(los >= BAND_CUTS[1]) & (sep.separation_category_code == "SC") & eff.b
 check(f"Quits by staff with {OLD}, {PY}*", f"{old['count'].sum():,}", rf"{re.escape(OLD)}, quit: {PY}\* [\d.]+ \(([\d,]+) people\)")
 
 # ICE's new officers (chart 1): GL pay plan, series 1801/1811, hired ICE_FROM on with under NEW_HIRE_LOS years of service.
-acc = pd.concat([opm("accessions", ym, ACC_COLS) for ym in months(ICE_FROM, newest)], ignore_index=True)
+acc_all = pd.concat([opm("accessions", ym, ACC_COLS, perm=False) for ym in months(ICE_FROM, newest)], ignore_index=True)
+acc = acc_all[acc_all.appointment_type_code.astype(str).isin(PERM)]
 ice = lambda d: d[(d.agency_subelement_code == "HSBB") & (d.pay_plan_code == "GL") & d.occupational_series_code.isin(["1801", "1811"])]
 hired = ice(acc)
 hired = hired[hired.accession_category_code.isin(["AC", "AD", "AE"]) & (svc(hired, mid(hired.personnel_action_effective_date_yyyymm)) < NEW_HIRE_LOS)
@@ -114,6 +115,15 @@ known_edu = nh[~nh.education_level_bracket.isin(["NO DATA REPORTED"]) & nh.educa
 degree = known_edu.education_level_bracket.isin(["BACHELORS DEGREE", "MASTERS OR PROFESSIONAL DEGREE", "DOCTORATE DEGREE"])
 check(f"Share of permanent new hires with a bachelor's or more, all agencies, {PY}*", f"{known_edu[degree]['count'].sum() / known_edu['count'].sum():.1%}",
       rf"bachelor's or more with no agency left out: .*; {PY}\* ([\d.]+%)")
+
+# Hiring in the partial year, permanent and every appointment type (the post's named groups): Treasury's tax staff are all at the IRS (TR93).
+nh_all = acc_all[acc_all.accession_category_code.isin(["AC", "AD", "AE"]) & (acc_all.personnel_action_effective_date_yyyymm.astype(str).str[:4] == PY)]
+tr = nh_all.agency_subelement_code.astype(str).str[:2] == "TR"
+for name, series in (("IRS tax examiners", "0592"), ("IRS contact representatives", "0962")):
+    g = nh_all[tr & (nh_all.occupational_series_code == series)]
+    check(f"{name}, new hires {PY}*, permanent", f"{g[g.appointment_type_code.astype(str).isin(PERM)]['count'].sum():,}", rf"{name} \({series}\): .*?hires: permanent ([\d,]+) vs")
+    check(f"{name}, new hires {PY}*, every appointment type", f"{g['count'].sum():,}", rf"{name} \({series}\): .*?every appointment type ([\d,]+) vs")
+check(f"Treasury new hires {PY}*, every appointment type", f"{nh_all[tr]['count'].sum():,}", r"- Treasury: .*?every appointment type ([\d,]+) vs")
 
 out = ["# Spot check: headline numbers recomputed from OPM's raw files", "",
        f"`spot_check.py` downloads OPM's current files from data.opm.gov and recomputes these with pandas, sharing no code with "

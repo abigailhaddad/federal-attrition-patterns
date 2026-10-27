@@ -22,6 +22,7 @@ python3 post.py DRAFT.md OUT.docx   # the post as a Word file, each {{chart N}} 
 | `8_pathways_hires` | Pathways hires, January-August of every year |
 | `9_at_will_appointments` | Political appointees (Schedule C, noncareer and limited-term SES) |
 | `10_schedule_policy_career` | Staff in Schedule Policy/Career by agency |
+| `11_hiring_by_agency` | New hires by agency against each agency's usual number, permanent and every appointment type |
 | `facts.md` | Every number in sentence form, with the data checks; spot_check.py reads it |
 | `tables/*.csv` | The tables `run.ipynb` shows next to each part of the post, saved by `build.py`; `charts.csv` has each chart's headline and notes |
 | `rookie_screen.csv` | New hires who left within a year, by agency component, 2023-2025 |

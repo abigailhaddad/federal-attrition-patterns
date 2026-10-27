@@ -4,7 +4,7 @@ import subprocess, sys
 from pathlib import Path
 import duckdb
 from config import (MONTHLY_FROM, AT_WILL, TERM_STARTS, DEGREE_SERIES, EDU_BAD, EDU_CHECK, MIN_DEGREE_HIRES, SCD_TOL, FIRST, INAUG, ICE_FROM, USAJOBS_FROM, LOS_CUTS, BAND_CUTS, PER, MIN_STAFF, MIN_QUITS, MIN_ATTORNEYS,
-                    MIN_SCREEN_HIRES, FLOW_GAP_PCT, LOW_INDEX, RECOVERY, GLITCH_PCT, NONPERM_ATTORNEY,
+                    MIN_SCREEN_HIRES, FLOW_GAP_PCT, LOW_INDEX, RECOVERY, DEEP_INDEX, REPLACED, APPT_DIFF, MIN_TEMP, GLITCH_PCT, NONPERM_ATTORNEY,
                     AUTUMN, NEW_HIRE_LOS, SCREEN_RISES, ROOKIE_FROM, YOUNG, ELIGIBLE_SURE, ELIGIBLE_MAYBE, MIN_AGENCY_HIRES, TOP, MAX_LOS, LAG_H, LAG_SAMPLE, CUSHIONS)
 import numpy as np
 import pandas as pd
@@ -654,12 +654,27 @@ for key, names, txt in (("agency_code", agname, "Agencies"), ("occupational_seri
     avg, now = hk[BASE_YEARS].mean(axis=1), hk[YEARS[-1]]
     big = avg[avg >= MIN_AGENCY_HIRES].index
     pct = now[big] / avg[big]
+    # the same with every appointment type: an agency can move hiring between permanent and temporary or term appointments
+    hk_all = db.sql(f"""SELECT {key} k, substr(eff, 1, 4)::INT yr, sum(n) n FROM '{DATA}/acc.parquet' WHERE cat IN ('AC', 'AD', 'AE') AND {WINDOW}
+        GROUP BY ALL""").df().pivot(index="k", columns="yr", values="n").reindex(index=hk.index.union(big), columns=YEARS).fillna(0)
+    avg_all, now_all = hk_all[BASE_YEARS].mean(axis=1), hk_all[YEARS[-1]]
+    pct_all = now_all[big] / avg_all[big]
     lab = lambda k: f"{names.get(k, k).title()} ({k})"
     table(f"hiring_by_{'agency' if key == 'agency_code' else 'occupation'}", pd.DataFrame({
         "name": [names.get(k, k).title() for k in big], f"{YEARS[-1]}* hires": now[big].astype(int).values,
-        f"{BASE} average": avg[big].round().astype(int).values, "share of average": pct.round(2).values}, index=pd.Index(big, name="code")).sort_values(f"{YEARS[-1]}* hires", ascending=False))
+        f"{BASE} average": avg[big].round().astype(int).values, "share of average": pct.round(2).values,
+        f"every appointment type, {YEARS[-1]}* hires": now_all[big].astype(int).values, f"every appointment type, {BASE} average": avg_all[big].round().astype(int).values,
+        "every appointment type, share of average": pct_all.round(2).values}, index=pd.Index(big, name="code")).sort_values(f"{YEARS[-1]}* hires", ascending=False))
     b(f"{txt} averaging {MIN_AGENCY_HIRES:,}+ hires in these months: {len(big)}, with {now[big].sum() / now.sum():.0%} of {YEARS[-1]}* hires. "
-      f"At or above their average: {(pct >= 1).sum()}; under half of it: {(pct < 0.5).sum()}.")
+      f"At or above their average: {(pct >= 1).sum()}; under half of it: {(pct < 0.5).sum()}. "
+      f"Counting every appointment type: at or above {(pct_all >= 1).sum()}; under half {(pct_all < 0.5).sum()}.")
+    flip = (pct - pct_all).abs().sort_values(ascending=False)
+    flip = flip[(flip >= APPT_DIFF) | ((now_all[big] >= 2 * now[big]) & (now_all[big] - now[big] >= MIN_TEMP))]
+    b(f"{txt} where counting every appointment type moves the share of average by {APPT_DIFF * 100:.0f}+ points, or where temporary and term hires are at least half of "
+      f"{YEARS[-1]}* hires and {MIN_TEMP}+ ({len(flip)}): " + ("; ".join(
+        f"{lab(k)} permanent {now[k]:,.0f} vs {avg[k]:,.0f} ({pct[k]:.0%}), every type {now_all[k]:,.0f} vs {avg_all[k]:,.0f} ({pct_all[k]:.0%})" for k in flip.index) or "none") + ".")
+    if key == "agency_code":
+        AG_HIRE = pd.DataFrame({"perm": pct, "all": pct_all, "now": now[big], "avg": avg[big]})   # chart 11
     b(f"{txt}, most {YEARS[-1]}* hires: " + "; ".join(f"{lab(k)} {now[k]:,.0f} ({now[k] / now.sum():.0%} of all; average {avg[k]:,.0f})"
                                                     for k in now.sort_values(ascending=False).index[:TOP]))
     b(f"{txt}, furthest above their average: " + "; ".join(f"{lab(k)} {now[k]:,.0f} vs {avg[k]:,.0f} ({pct[k]:.0%})"
@@ -1389,6 +1404,108 @@ if len(rec):   # a recovery with few or no arrivals is staff moved in from other
       + "; ".join(f"{lab(k)}: +{mon.loc[k, mon.columns.max()] - mon.loc[k, low_at[k]]:,.0f} staff, {arr[k]:,.0f} arrivals" for k in rec.index))
     table("hiring_back_recovered_occupations", pd.DataFrame({"name": [lab(k) for k in rec.index], f"low ({JAN} = 100)": rec.low_idx.round(1), f"{NEWEST} ({JAN} = 100)": rec["index"].round(1),
           "staff gained since the low": [int(mon.loc[k, mon.columns.max()] - mon.loc[k, low_at[k]]) for k in rec.index], "hires and transfers in since the low": [int(arr[k]) for k in rec.index]}).rename_axis("agency and series"))
+# Every occupation that passed the flow check (Defense left out, as above): how far each is from January SHOCK, and how much of what it lost it has replaced.
+od = ok_[~ok_.index.str.startswith(DEFENSE)].assign(dep=fl_occ.reindex(ok_.index).fillna(0), arr=in_occ.reindex(ok_.index).fillna(0))
+od["replaced"] = od.arr / od.dep
+table("occupations_vs_jan2025", pd.DataFrame({"name": [str(s_).title() for s_ in od.se], f"permanent staff, {JAN}": od.jan25.astype(int), f"permanent staff, {NEWEST}": od.now.astype(int),
+      f"{NEWEST} ({JAN} = 100)": od["index"].round(1), f"departures since {JAN}": od.dep.astype(int), f"hires and transfers in since {JAN}": od.arr.astype(int),
+      "arrivals as a share of departures": od.replaced.round(3)}).sort_values(f"{NEWEST} ({JAN} = 100)").rename_axis("agency and series"))
+low_ = od[od["index"] <= LOW_INDEX]
+deep_ = od[od["index"] <= DEEP_INDEX]
+b(f"All {len(od)} agency occupations here (Defense left out) against {JAN}: at {LOW_INDEX} or below {len(low_)}, of which {(low_.replaced < REPLACED).sum()} have replaced under "
+  f"{REPLACED:.0%} of their departures with hires and transfers in; at {DEEP_INDEX} or below {len(deep_)}, of which {(deep_.replaced < REPLACED).sum()} have. Above {JAN} staff: {(od['index'] > 100).sum()}. "
+  f"Departures and arrivals from {month(AFTER)} to {NEWEST}; full list in occupations_vs_jan2025.csv.")
+b(f"Lowest {TOP}, with arrivals as a share of departures: " + "; ".join(f"{lab(k)} {r['index']:.0f} ({r.arr:,.0f} of {r.dep:,.0f}, {r.replaced:.0%})"
+                                                                     for k, r in od.sort_values("index").head(TOP).iterrows()))
+
+# ---- The groups the post names: headcount, flows, and hiring against normal, permanent and every appointment type ----
+# Departures and hires from JAN (the same span as the examples in section 2); hiring vs normal over the same months every year (WINDOW).
+assert db.sql(f"""SELECT count(DISTINCT agency_subelement_code) FROM '{DATA}/emp.parquet' WHERE snap = '{INAUG}' AND agency_code = 'TR'
+    AND occupational_series_code IN ('0592', '0512', '0962')""").fetchone()[0] == 1   # all of Treasury's tax staff are at the IRS, so they're labelled IRS
+NAMED = {"IRS tax examiners (0592)": "agency_code = 'TR' AND occupational_series_code = '0592'",
+         "IRS revenue agents (0512)": "agency_code = 'TR' AND occupational_series_code = '0512'",
+         "IRS contact representatives (0962)": "agency_code = 'TR' AND occupational_series_code = '0962'",
+         "Food inspectors, every agency (1863)": "occupational_series_code = '1863'",
+         "VA claims examiners (0996)": "agency_code = 'VA' AND occupational_series_code = '0996'",
+         "Border Patrol agents (HS 1896)": "agency_code = 'HS' AND occupational_series_code = '1896'",
+         "Attorneys, every agency (0905)": ATT,
+         "Patent examiners (1224)": "occupational_series_code = '1224'",
+         "Aerospace engineers (0861)": "occupational_series_code = '0861'",
+         "General engineers (0801)": "occupational_series_code = '0801'",
+         "Transportation specialists (2101)": "occupational_series_code = '2101'",
+         "Fire protection (0081)": "occupational_series_code = '0081'",
+         "Correctional officers (0007)": "occupational_series_code = '0007'",
+         "Treasury": "agency_code = 'TR'", "EPA": "agency_code = 'EP'", "Justice": "agency_code = 'DJ'", "NASA": "agency_code = 'NN'",
+         "Homeland Security": "agency_code = 'HS'", "Veterans Affairs": "agency_code = 'VA'"}
+jan26 = f"{PARTIAL_TO[:4]}01"
+NROWS = []
+for lbl, w in NAMED.items():
+    g = lambda q: db.sql(q).fetchone()[0] or 0
+    hy_ = db.sql(f"""SELECT substr(eff, 1, 4)::INT yr, sum(n) FILTER (WHERE appt IN {PERM}) p, sum(n) a FROM '{DATA}/acc.parquet'
+        WHERE cat IN ('AC', 'AD', 'AE') AND {WINDOW} AND {w} GROUP BY 1""").df().set_index("yr").reindex(YEARS).fillna(0)
+    NROWS.append({"group": lbl, f"staff, {JAN}": g(f"SELECT sum(n) FROM emp WHERE snap = '{INAUG}' AND {w}"),
+                  f"staff, {month(jan26)}": g(f"SELECT sum(n) FROM emp WHERE snap = '{jan26}' AND {w}"),
+                  f"staff, {NEWEST}": g(f"SELECT sum(n) FROM hc WHERE snap = '{PARTIAL_TO}' AND {w}"),
+                  f"departures, {JAN} to {NEWEST}": g(f"SELECT sum(n) FROM sep WHERE cat NOT IN {TRANSFERS} AND eff BETWEEN '{INAUG}' AND '{PARTIAL_TO}' AND {w}"),
+                  f"new hires, {JAN} to {NEWEST}": g(f"SELECT sum(n) FROM '{DATA}/acc.parquet' WHERE appt IN {PERM} AND cat IN ('AC', 'AD', 'AE') AND eff BETWEEN '{INAUG}' AND '{PARTIAL_TO}' AND {w}"),
+                  # the flow check of the occupations section: staff change against hires and transfers in, less departures and transfers out, from the month after JAN
+                  "staff change the flows don't explain": g(f"SELECT sum(n) FROM hc WHERE snap = '{PARTIAL_TO}' AND {w}") - g(f"SELECT sum(n) FROM emp WHERE snap = '{INAUG}' AND {w}")
+                      - g(f"SELECT sum(n) FROM '{DATA}/acc.parquet' WHERE appt IN {PERM} AND eff BETWEEN '{AFTER}' AND '{PARTIAL_TO}' AND {w}")
+                      + g(f"SELECT sum(n) FROM sep WHERE eff BETWEEN '{AFTER}' AND '{PARTIAL_TO}' AND {w}"),
+                  f"permanent hires, {YEARS[-1]}*": hy_.p[YEARS[-1]], f"permanent hires, {BASE} average": hy_.p[BASE_YEARS].mean(),
+                  f"every appointment type, {YEARS[-1]}*": hy_.a[YEARS[-1]], f"every appointment type, {BASE} average": hy_.a[BASE_YEARS].mean()})
+nm = pd.DataFrame(NROWS).set_index("group")
+c_ = [c for c in nm.columns if c != "staff change the flows don't explain"]
+# the IRS tax examiners and VA claims examiners must match section 2's figures (same records, same span)
+for lbl, k in (("IRS tax examiners (0592)", "TR 0592"), ("VA claims examiners (0996)", "VA 0996")):
+    assert (nm.loc[lbl, c_[0]], nm.loc[lbl, c_[3]], nm.loc[lbl, c_[4]]) == (staff25[k], ex_all[k], hires_all[k]), (lbl, nm.loc[lbl], staff25[k], ex_all[k], hires_all[k])
+table("named_groups", nm.round().astype(int).assign(**{f"{NEWEST} ({JAN} = 100)": (nm[c_[2]] / nm[c_[0]] * 100).round(1),
+      "permanent hires, share of average": (nm[c_[5]] / nm[c_[6]]).round(2), "every appointment type, share of average": (nm[c_[7]] / nm[c_[8]]).round(2)}))
+h(f"The groups the post names ({JAN} to {NEWEST}; hiring vs normal {MONTH_SPAN})")
+b(f"Staff are permanent; departures and new hires from {JAN} to {NEWEST}, permanent. Hiring against normal is shown twice: permanent appointments, then every appointment type "
+  "(temporary and term included), since an agency can move hiring from one to the other.")
+for lbl, r in nm.iterrows():
+    sp, sa = r[c_[5]] / r[c_[6]] if r[c_[6]] else np.nan, r[c_[7]] / r[c_[8]] if r[c_[8]] else np.nan
+    b(f"{lbl}: staff {r[c_[0]]:,.0f} ({JAN}), {r[c_[1]]:,.0f} ({month(jan26)}), {r[c_[2]]:,.0f} ({NEWEST}; {r[c_[2]] / r[c_[0]] * 100:.0f} on {JAN} = 100); "
+      f"{r[c_[3]]:,.0f} left, {r[c_[4]]:,.0f} hired. {YEARS[-1]}* hires: permanent {r[c_[5]]:,.0f} vs {r[c_[6]]:,.0f} ({sp:.0%}); every appointment type "
+      f"{r[c_[7]]:,.0f} vs {r[c_[8]]:,.0f} ({sa:.0%})"
+      + (f". The two differ by {abs(sp - sa) * 100:.0f} points: say which appointment types are counted" if abs(sp - sa) >= APPT_DIFF
+         else f". Temporary and term hires ({r[c_[7]] - r[c_[5]]:,.0f}) outnumber permanent ones: say which appointment types are counted"
+         if r[c_[7]] >= 2 * r[c_[5]] and r[c_[7]] - r[c_[5]] >= MIN_TEMP else "")
+      + (f". Staff changed by {r[c_[2]] - r[c_[0]]:+,.0f}, and hires, transfers and departures since {month(AFTER)} leave {gap_:+,.0f} unexplained ({gap_ / r[c_[0]]:+.0%} of {JAN} staff): "
+         "the headcount change isn't only people leaving (staff may have moved between series), so don't quote it as departures" if abs(gap_ := r["staff change the flows don't explain"]) > FLOW_GAP_PCT / 100 * r[c_[0]] else "") + ".")
+
+# ---- 11. Hiring by agency against normal: the agencies that usually do most federal hiring ---------------------------
+a11 = AG_HIRE.sort_values("perm")
+a11.assign(name=[agname.get(k, k).title() for k in a11.index]).rename(columns={"perm": "permanent, share of average", "all": "every appointment type, share of average",
+           "now": f"permanent hires, {YEARS[-1]}*", "avg": f"permanent hires, {BASE} average"}).round(2).to_csv(OUT / "11_hiring_by_agency.csv")
+short_ag = lambda k: (agname.get(k, k).title().replace("Department Of The ", "").replace("Department Of ", "").replace(" Of ", " of ").replace(" And ", " and ")
+                      .replace("Nat Aeronautics and Space Administration", "NASA").replace("Environmental Protection Agency", "EPA")
+                      .replace("Housing and Urban Developm", "Housing and Urban Development"))
+fig, ax = frame(0.32 * len(a11) + 1.2, top_in=0.55, bottom_in=0.3, left=0.27, right=0.72)
+y11 = np.arange(len(a11))
+cap = np.sort(a11[["perm", "all"]].max(axis=1).values)[-2] * 1.15   # the axis stops past the second-highest agency; anything beyond runs off the edge, its value in the label
+ax.barh(y11, a11.perm.clip(upper=cap) * 100, color=TYPE_COLOR["Quit"], height=0.62)
+ax.scatter(a11["all"][a11["all"] <= cap] * 100, y11[(a11["all"] <= cap).values], s=42, color=TYPE_COLOR["Retirement"], edgecolor=SURFACE, linewidth=1.5, zorder=3)
+ax.axvline(100, color=INK, lw=1, ls=(0, (3, 2)))
+lab_x = matplotlib.transforms.blended_transform_factory(ax.transAxes, ax.transData)
+for yi, (k, r) in zip(y11, a11.iterrows()):
+    ax.text(1.03, yi, f"{r.perm:.0%}  ({r.now:,.0f} vs {r.avg:,.0f})" + (f"; every type {r['all']:.0%}" if max(r.perm, r["all"]) > cap else ""),
+            transform=lab_x, va="center", fontsize=9.5, color=INK)
+ax.set_yticks(y11, [short_ag(k) for k in a11.index], fontsize=10, color=INK)
+ax.set_xlim(0, cap * 100)
+ax.xaxis.set_major_formatter(matplotlib.ticker.FuncFormatter(lambda v, _: f"{v:.0f}%"))
+ax.grid(axis="x", color=GRID); ax.set_axisbelow(True)
+fig.legend([plt.Rectangle((0, 0), 1, 1, color=TYPE_COLOR["Quit"]), plt.Line2D([], [], marker="o", ls="", color=TYPE_COLOR["Retirement"], markersize=7)],
+           ["Permanent appointments", "Every appointment type"], ncol=2, frameon=False, loc="upper left", bbox_to_anchor=(0.27, 1 - 0.1 / (0.32 * len(a11) + 1.2)), fontsize=10, handlelength=1)
+n_up = int((a11.perm >= 1).sum())
+finish(fig, "11_hiring_by_agency", claim("Chart 11 title", n_up <= 3, f"Only {n_up} of the {len(a11)} agencies that do most federal hiring are back to their usual level",
+                                         f"{n_up} of the {len(a11)} agencies that do most federal hiring are at or above their usual level"),
+       f"New hires, {MONTH_SPAN} {YEARS[-1]}, as a share of each agency's {BASE} average for the same months",
+       [f"Agencies averaging {MIN_AGENCY_HIRES:,}+ new hires in these months. Bars and labels: permanent appointments; dots: every appointment type, temporary and term included. "
+        "A bar or dot past the edge of the chart has its value in the label.",
+        f"Every year counts only records in files through {pd.Timestamp(f'2000-{LAST_M}-01'):%B} of that year. Records for recent months are still arriving: "
+        f"once they do, {YEARS[-1]}* permanent hires are likely {(LAG_FACTOR['hires'][1] - 1) * 100:.0f}-{(LAG_FACTOR['hires'][2] - 1) * 100:.0f}% higher."], perm=False)
 
 h("Suggested chart headlines (not on the images)")
 for name, title in HEADLINES:

@@ -1,111 +1,111 @@
-code,name,2026* hires,2015-2024 average,share of average
-0610,Nurse,5428,6373,0.85
-1896,Border Patrol Enforcement Series,3259,623,5.23
-0679,Medical Support Assistance,3096,4171,0.74
-2210,Information Technology Management,2416,4057,0.6
-1802,Compliance Inspection And Support,2245,6474,0.35
-0007,Correctional Officer,1837,1305,1.41
-0905,General Attorney,1789,1270,1.41
-1801,"General Inspection, Investigation, Enforcement, And Compliance Series",1781,1041,1.71
-1895,Customs And Border Protection,1756,817,2.15
-0602,Medical Officer,1554,2067,0.75
-3566,Custodial Working,1456,2040,0.71
-0301,Miscellaneous Administration And Program,1450,2724,0.53
-0801,General Engineering,1382,1036,1.33
-0621,Nursing Assistant,1318,1641,0.8
-1811,Criminal Investigation,1284,1063,1.21
-0185,Social Work,1155,1287,0.9
-1102,Contracting,1141,2106,0.54
-0303,Miscellaneous Clerk And Assistant,1095,3906,0.28
-0620,Practical Nurse,1088,1553,0.7
-0343,Management And Program Analysis,1048,2083,0.5
-1101,General Business And Industry,874,1263,0.69
-7408,Food Service Working,873,970,0.9
-0962,Contact Representative,871,3084,0.28
-0083,Police,820,944,0.87
-0101,Social Science,774,686,1.13
-1224,Patent Examining,658,390,1.69
-0640,Health Aid And Technician,651,887,0.73
-0201,Human Resources Management,614,1011,0.61
-0899,Engineering And Architecture Student Trainee,586,617,0.95
-0861,Aerospace Engineering,575,352,1.63
-1550,Computer Science,566,589,0.96
-8852,Aircraft Mechanic,562,563,1.0
-0660,Pharmacist,537,557,0.96
-0081,Fire Protection And Prevention,535,413,1.3
-0080,Security Administration,534,737,0.72
-0830,Mechanical Engineering,525,828,0.63
-0085,Security Guard,489,627,0.78
-0501,Financial Administration And Program,468,834,0.56
-2101,Transportation Specialist,456,294,1.55
-0802,Engineering Technical,418,560,0.75
-2005,Supply Clerical And Technician,406,639,0.64
-0661,Pharmacy Technician,405,586,0.69
-0346,Logistics Management,389,758,0.51
-0601,General Health Science,371,639,0.58
-0105,Social Insurance Administration,364,555,0.66
-0675,Medical Records Technician,342,360,0.95
-0132,Intelligence,339,769,0.44
-2152,Air Traffic Control,325,301,1.08
-0511,Auditing,320,420,0.76
-1702,Education And Training Technician,305,356,0.86
-0622,Medical Supply Aide And Technician,301,299,1.01
-0560,Budget Analysis,296,428,0.69
-0644,Medical Technologist,294,362,0.81
-0855,Electronics Engineering,288,582,0.49
-6907,Materials Handler,284,426,0.67
-2091,Sales Store Clerical,280,589,0.48
-0647,Diagnostic Radiologic Technologist,278,353,0.79
-0401,General Natural Resources Management And Biological Sciences,272,761,0.36
-5801,Misc Transportation/Mobile Equipmt Maintne,270,306,0.88
-3806,Sheet Metal Mechanic,270,436,0.62
-0850,Electrical Engineering,268,315,0.85
-0901,General Legal And Kindred Administration,262,662,0.4
-4749,Maintenance Mechanic,261,498,0.52
-0510,Accounting,253,421,0.6
-0645,Medical Technician,251,353,0.71
-0180,Psychology,240,344,0.7
-6914,Store Working,240,268,0.9
-0603,Physician Assistant,237,247,0.96
-0649,Medical Instrument Technician,236,273,0.86
-5803,Heavy Mobile Equipment Mechanic,234,237,0.99
-0203,Human Resources Assistance,234,948,0.25
-2805,Electrician,230,389,0.59
-0681,Dental Assistant,223,322,0.69
-0856,Electronics Technical,196,343,0.57
-5334,Marine Machinery Mechanic,193,217,0.89
-0503,Financial Clerical And Assistance,192,525,0.37
-0986,Legal Assistance,191,407,0.47
-0086,Security Clerical And Assistance,190,284,0.67
-5703,Motor Vehicle Operating,182,274,0.66
-1701,General Education And Training,175,242,0.72
-0525,Accounting Technician,174,407,0.43
-4102,Painting,166,251,0.66
-0854,Computer Engineering,165,200,0.82
-1712,Training Instruction,164,318,0.52
-4204,Pipefitting,163,240,0.68
-0462,Forestry Technician,159,1229,0.13
-0318,Secretary,158,593,0.27
-1910,Quality Assurance,146,333,0.44
-6901,Misc Warehousing And Stock Handling,145,261,0.55
-3414,Machining,134,215,0.62
-2102,Transportation Clerk And Assistant,131,230,0.57
-0810,Civil Engineering,128,555,0.23
-1105,Purchasing,127,214,0.59
-0340,Program Management,127,271,0.47
-1035,Public Affairs,121,278,0.43
-1301,General Physical Science,116,348,0.33
-1515,Operations Research,115,270,0.43
-0599,Financial Management Student Trainee,81,253,0.32
-0110,Economist,81,249,0.33
-0399,Administration And Office Support Student Trainee,74,373,0.2
-1199,Business And Industry Student Trainee,54,223,0.24
-0305,Mail And File,49,445,0.11
-0344,Management And Program Clerical And Assistance,27,233,0.12
-0570,Financial Institution Examining,15,278,0.05
-0499,Biological Science Student Trainee,11,312,0.04
-0996,Veterans Claims Examining,6,979,0.01
-0512,Internal Revenue Agent,1,364,0.0
-0592,Tax Examining,1,1220,0.0
-0356,Data Transcriber,0,329,0.0
-1863,Food Inspection,0,253,0.0
+code,name,2026* hires,2015-2024 average,share of average,"every appointment type, 2026* hires","every appointment type, 2015-2024 average","every appointment type, share of average"
+0610,Nurse,5428,6373,0.85,5939,7440,0.8
+1896,Border Patrol Enforcement Series,3259,623,5.23,3391,623,5.44
+0679,Medical Support Assistance,3096,4171,0.74,3109,4567,0.68
+2210,Information Technology Management,2416,4057,0.6,3153,4986,0.63
+1802,Compliance Inspection And Support,2245,6474,0.35,2247,6555,0.34
+0007,Correctional Officer,1837,1305,1.41,1837,1306,1.41
+0905,General Attorney,1789,1270,1.41,2338,2268,1.03
+1801,"General Inspection, Investigation, Enforcement, And Compliance Series",1781,1041,1.71,2204,1366,1.61
+1895,Customs And Border Protection,1756,817,2.15,1757,817,2.15
+0602,Medical Officer,1554,2067,0.75,1899,2701,0.7
+3566,Custodial Working,1456,2040,0.71,1614,2347,0.69
+0301,Miscellaneous Administration And Program,1450,2724,0.53,3382,6656,0.51
+0801,General Engineering,1382,1036,1.33,1445,1210,1.19
+0621,Nursing Assistant,1318,1641,0.8,1371,1952,0.7
+1811,Criminal Investigation,1284,1063,1.21,2030,1314,1.55
+0185,Social Work,1155,1287,0.9,1744,1939,0.9
+1102,Contracting,1141,2106,0.54,1189,2239,0.53
+0303,Miscellaneous Clerk And Assistant,1095,3906,0.28,4382,9294,0.47
+0620,Practical Nurse,1088,1553,0.7,1116,1672,0.67
+0343,Management And Program Analysis,1048,2083,0.5,1298,2731,0.48
+1101,General Business And Industry,874,1263,0.69,989,1870,0.53
+7408,Food Service Working,873,970,0.9,910,1256,0.72
+0962,Contact Representative,871,3084,0.28,1464,3200,0.46
+0083,Police,820,944,0.87,1328,1443,0.92
+0101,Social Science,774,686,1.13,874,873,1.0
+1224,Patent Examining,658,390,1.69,658,390,1.69
+0640,Health Aid And Technician,651,887,0.73,787,1331,0.59
+0201,Human Resources Management,614,1011,0.61,845,1422,0.59
+0899,Engineering And Architecture Student Trainee,586,617,0.95,1011,1622,0.62
+0861,Aerospace Engineering,575,352,1.63,593,407,1.46
+1550,Computer Science,566,589,0.96,574,643,0.89
+8852,Aircraft Mechanic,562,563,1.0,810,988,0.82
+0660,Pharmacist,537,557,0.96,1097,1185,0.93
+0081,Fire Protection And Prevention,535,413,1.3,583,489,1.19
+0080,Security Administration,534,737,0.72,676,981,0.69
+0830,Mechanical Engineering,525,828,0.63,542,889,0.61
+0085,Security Guard,489,627,0.78,543,804,0.68
+0501,Financial Administration And Program,468,834,0.56,532,968,0.55
+2101,Transportation Specialist,456,294,1.55,482,399,1.21
+0802,Engineering Technical,418,560,0.75,471,780,0.6
+2005,Supply Clerical And Technician,406,639,0.64,595,1081,0.55
+0661,Pharmacy Technician,405,586,0.69,431,668,0.65
+0346,Logistics Management,389,758,0.51,498,980,0.51
+0601,General Health Science,371,639,0.58,751,1336,0.56
+0105,Social Insurance Administration,364,555,0.66,484,625,0.77
+0675,Medical Records Technician,342,360,0.95,345,396,0.87
+0132,Intelligence,339,769,0.44,399,953,0.42
+2152,Air Traffic Control,325,301,1.08,1764,1052,1.68
+0511,Auditing,320,420,0.76,321,443,0.73
+1702,Education And Training Technician,305,356,0.86,728,869,0.84
+0622,Medical Supply Aide And Technician,301,299,1.01,303,309,0.98
+0560,Budget Analysis,296,428,0.69,333,531,0.63
+0644,Medical Technologist,294,362,0.81,307,409,0.75
+0855,Electronics Engineering,288,582,0.49,296,617,0.48
+6907,Materials Handler,284,426,0.67,390,707,0.55
+2091,Sales Store Clerical,280,589,0.48,304,694,0.44
+0647,Diagnostic Radiologic Technologist,278,353,0.79,285,387,0.74
+0401,General Natural Resources Management And Biological Sciences,272,761,0.36,368,1186,0.31
+5801,Misc Transportation/Mobile Equipmt Maintne,270,306,0.88,642,747,0.86
+3806,Sheet Metal Mechanic,270,436,0.62,304,483,0.63
+0850,Electrical Engineering,268,315,0.85,274,347,0.79
+0901,General Legal And Kindred Administration,262,662,0.4,270,709,0.38
+4749,Maintenance Mechanic,261,498,0.52,1467,1857,0.79
+0510,Accounting,253,421,0.6,272,459,0.59
+0645,Medical Technician,251,353,0.71,260,388,0.67
+0180,Psychology,240,344,0.7,1235,1182,1.04
+6914,Store Working,240,268,0.9,283,327,0.87
+0603,Physician Assistant,237,247,0.96,252,368,0.68
+0649,Medical Instrument Technician,236,273,0.86,240,293,0.82
+5803,Heavy Mobile Equipment Mechanic,234,237,0.99,278,369,0.75
+0203,Human Resources Assistance,234,948,0.25,339,1498,0.23
+2805,Electrician,230,389,0.59,249,407,0.61
+0681,Dental Assistant,223,322,0.69,235,357,0.66
+0856,Electronics Technical,196,343,0.57,247,386,0.64
+5334,Marine Machinery Mechanic,193,217,0.89,198,220,0.9
+0503,Financial Clerical And Assistance,192,525,0.37,767,791,0.97
+0986,Legal Assistance,191,407,0.47,204,440,0.46
+0086,Security Clerical And Assistance,190,284,0.67,210,362,0.58
+5703,Motor Vehicle Operating,182,274,0.66,278,514,0.54
+1701,General Education And Training,175,242,0.72,1060,1365,0.78
+0525,Accounting Technician,174,407,0.43,177,440,0.4
+4102,Painting,166,251,0.66,186,291,0.64
+0854,Computer Engineering,165,200,0.82,179,229,0.78
+1712,Training Instruction,164,318,0.52,330,592,0.56
+4204,Pipefitting,163,240,0.68,165,248,0.66
+0462,Forestry Technician,159,1229,0.13,2007,9299,0.22
+0318,Secretary,158,593,0.27,197,745,0.26
+1910,Quality Assurance,146,333,0.44,158,386,0.41
+6901,Misc Warehousing And Stock Handling,145,261,0.55,156,277,0.56
+3414,Machining,134,215,0.62,142,249,0.57
+2102,Transportation Clerk And Assistant,131,230,0.57,170,336,0.51
+0810,Civil Engineering,128,555,0.23,143,639,0.22
+1105,Purchasing,127,214,0.59,137,248,0.55
+0340,Program Management,127,271,0.47,241,404,0.6
+1035,Public Affairs,121,278,0.43,225,424,0.53
+1301,General Physical Science,116,348,0.33,135,431,0.31
+1515,Operations Research,115,270,0.43,120,289,0.42
+0599,Financial Management Student Trainee,81,253,0.32,150,443,0.34
+0110,Economist,81,249,0.33,99,298,0.33
+0399,Administration And Office Support Student Trainee,74,373,0.2,521,2324,0.22
+1199,Business And Industry Student Trainee,54,223,0.24,161,453,0.36
+0305,Mail And File,49,445,0.11,57,815,0.07
+0344,Management And Program Clerical And Assistance,27,233,0.12,38,334,0.11
+0570,Financial Institution Examining,15,278,0.05,19,288,0.07
+0499,Biological Science Student Trainee,11,312,0.04,17,570,0.03
+0996,Veterans Claims Examining,6,979,0.01,6,1049,0.01
+0512,Internal Revenue Agent,1,364,0.0,1,369,0.0
+0592,Tax Examining,1,1220,0.0,822,1359,0.6
+0356,Data Transcriber,0,329,0.0,0,543,0.0
+1863,Food Inspection,0,253,0.0,1,288,0.0

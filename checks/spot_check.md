@@ -20,5 +20,10 @@
 | Non-veteran new hires with prior service, 2026* | 13,949 | 13,949 | yes |
 | Share of permanent new hires under 30, 2026* | 31.7% | 31.7% | yes |
 | Share of permanent new hires with a bachelor's or more, all agencies, 2026* | 44.7% | 44.7% | yes |
+| IRS tax examiners, new hires 2026*, permanent | 1 | 1 | yes |
+| IRS tax examiners, new hires 2026*, every appointment type | 822 | 822 | yes |
+| IRS contact representatives, new hires 2026*, permanent | 3 | 3 | yes |
+| IRS contact representatives, new hires 2026*, every appointment type | 574 | 574 | yes |
+| Treasury new hires 2026*, every appointment type | 2,522 | 2,522 | yes |
 
 January 2025 staff with no length of service reported: 6.
