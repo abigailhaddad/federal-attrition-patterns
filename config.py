@@ -6,7 +6,7 @@ import os
 # ---- periods (YYYYMM) ----
 # The comparison period. "Usual" and "normal" in facts.md mean the average of the years from FIRST to the year before INAUG,
 # and a group's "old high" is its highest year in that span. Change the year and run `python3 run.py` (or set it in
-# run.ipynb, or FIRST=200801 python3 run.py): the extract reads any years it doesn't have yet, and every number, chart and
+# run.ipynb, or FIRST=201801 python3 run.py): the extract reads any years it doesn't have yet, and every number, chart and
 # title is recomputed. Chart titles that make a claim fall back to plain wording when the claim doesn't hold (listed in facts.md).
 # Every rate is per 1,000 January staff, and OPM's January staff counts start in January 2012, so FIRST can go back to 2012.
 # The rookie screen and ICE cohorts have their own start dates below and don't move with FIRST.
@@ -14,7 +14,7 @@ FIRST = os.environ.get("FIRST", "201501")
 INAUG = "202501"          # the inauguration month: the "before" snapshot for every comparison from then on
 assert FIRST[4:] == "01" and "201201" <= FIRST <= f"{int(INAUG[:4]) - 1}01", "FIRST: a January from 2012 to the year before INAUG"
 MONTHLY_FROM = "202411"   # monthly headcount files read from here (January files are read from FIRST)
-ICE_FROM = "202509"       # ICE's hiring surge: chart 1's cohorts and the republishing check start here
+ICE_FROM = "202509"       # ICE's hiring surge: chart 1's cohorts start here
 ROOKIE_FROM = "202309"    # rookie screen: autumn cohorts from this year on
 USAJOBS_FROM = "2025-06-01"   # ICE job postings (chart 1's label check) opened on or after this date
 

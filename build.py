@@ -239,8 +239,8 @@ finish(fig, "2_how_people_left", f"How five occupations lost staff in {SHOCK}",
         "which includes removals for discipline or performance, and deaths.",
         "Retirement includes disability retirement. Transfers to other agencies are not counted."])
 
-# Quits include the DRP exits OPM coded as quits; retirements leave DRP out (in 2025 DRP was coded both ways).
-KIND = {"quit": "cat = 'SC'", "retire": "cat IN ('SD', 'SE', 'SG') AND drp <> 'Y'", "total": f"cat NOT IN {TRANSFERS}"}
+# DRP exits count by how OPM coded them: as quits (SC) or retirements (SD, SE, SG).
+KIND = {"quit": "cat = 'SC'", "retire": "cat IN ('SD', 'SE', 'SG')", "total": f"cat NOT IN {TRANSFERS}"}
 
 # ---- Reporting lag: records for a month keep arriving in later files, and since late 2025 far more of them do ----
 # A month counts as complete with the records that arrive within LAG_H months (lag = file month - effective month).
@@ -408,7 +408,7 @@ ok4r = r20[YEARS[-1]] * LAG_FACTOR["retire"][0] < r20[BASE_YEARS].mean()   # "re
 finish(fig, "4_leaving_pace_by_service", claim("Chart 4 title", ok7q and ok4r, f"Long-serving staff are quitting at about their {PEAK7} peak; retirements are lower",
                                                f"Long-serving staff: quits {r7:.2f} times their {YEARS[0]}-{SHOCK - 1} high, retirements {r20[YEARS[-1]] / r20[BASE_YEARS].mean():.2f} times their average"),
        f"Permanent employees who left per month, {RATE} on staff in January",
-       [f"{MONTH_SPAN.replace('-', ' through ')} of every year. Each row is shaded against its own range. All departures include DRP exits, and quits include those OPM coded as quits; retirements don't include DRP exits.",
+       [f"{MONTH_SPAN.replace('-', ' through ')} of every year. Each row is shaded against its own range. DRP exits are included, as quits or retirements depending on how OPM coded them.",
         f"Transfers to other agencies are not counted. Retirement includes disability retirement. Records for recent months are still arriving: "
         f"once they do, {YEARS[-1]}* figures are likely {(lo4 - 1) * 100:.0f}-{(hi4 - 1) * 100:.0f}% higher."])
 
@@ -909,7 +909,7 @@ def std_pace(kind, yr, mix_yr):
     return (r_[kind] / r_.staff).reindex(w_.index).fillna(0).mul(w_).sum() / w_.sum() / int(LAST_M) * PER
 
 
-for kind, txt in (("total", "Departures"), ("retire", "Retirements (DRP exits not counted)")):
+for kind, txt in (("total", "Departures"), ("retire", "Retirements")):
     own = {y: std_pace(kind, y, y) for y in YEARS}
     on25 = {y: std_pace(kind, y, SHOCK) for y in YEARS}
     base_avg = np.mean([own[y] for y in BASE_YEARS])
