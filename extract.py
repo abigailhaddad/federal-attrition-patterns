@@ -1,12 +1,12 @@
 # Pull everything build.py needs: OPM EHRI from its HuggingFace mirror (newest version of each monthly file), plus ICE's
 # USAJOBS postings for chart 1's job label (data/sources/).
 # python3 extract.py  ->  data/sep.parquet, emp.parquet, hc.parquet, acc.parquet, rookie_*.parquet, *_ice_cbp.parquet,
-#                         age_*.parquet, asis_*.parquet, sources/
+#                         age_*.parquet, edu_acc.parquet, agency_names.parquet, scd_check.parquet, asis_*.parquet, sources/
 # One small aggregate per source file goes to data/cache/ first, so a rerun skips files it already has
 # (HuggingFace rate-limits; a first run makes a few thousand reads and takes hours).
 # age_*.parquet: age bracket by whole years of service (los_y, rounded down, from the leave service date: build.py treats MAX_LOS+ as not
 # reported), for retirement eligibility and young hires.
-import json, re, sys, time, urllib.request
+import json, re, time, urllib.request
 from pathlib import Path
 import duckdb
 
@@ -159,8 +159,7 @@ def plan():
 PLAN = list(plan())
 con = duckdb.connect()
 con.execute("SET threads=3")   # few parallel requests, or HuggingFace rate-limits
-ONLY = tuple(sys.argv[1:])   # python3 extract.py scdchk_ : read only the cache files with these prefixes, then stop
-todo = [(name, sql) for name, sql in PLAN if not (CACHE / f"{name}.parquet").exists() and name.startswith(ONLY or "")]
+todo = [(name, sql) for name, sql in PLAN if not (CACHE / f"{name}.parquet").exists()]
 print(len(todo), "files to read", flush=True)
 for i, (name, sql) in enumerate(todo, 1):
     for attempt in range(1, 7):
@@ -176,8 +175,6 @@ for i, (name, sql) in enumerate(todo, 1):
     print(f"{i}/{len(todo)} {name}", flush=True)
     time.sleep(1)
 
-if ONLY:
-    sys.exit()
 # Combine only the caches this run planned, so a superseded version left in data/cache/ is never counted.
 for out, prefix in (("sep", "sep4_"), ("emp", "emp3_"), ("hc", "hc_"), ("acc", "acc_"), ("rookie_sep", "rookiesep2_"), ("rookie_acc", "rookieacc2_"),
                     ("acc_ice_cbp", "iceacc2_"), ("sep_ice_cbp", "icesep2_"),

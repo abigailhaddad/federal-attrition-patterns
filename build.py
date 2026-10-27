@@ -1,6 +1,6 @@
 # The charts and facts for the federal attrition post, from the OPM EHRI aggregates extract.py writes to data/.
 # python3 build.py  ->  charts/*.png with the CSV behind each, charts/facts.md, charts/rookie_screen.csv
-import re, subprocess, sys
+import subprocess, sys
 from pathlib import Path
 import duckdb
 from config import (MONTHLY_FROM, AT_WILL, TERM_STARTS, DEGREE_SERIES, EDU_BAD, EDU_CHECK, MIN_DEGREE_HIRES, SCD_TOL, FIRST, INAUG, ICE_FROM, USAJOBS_FROM, LOS_CUTS, BAND_CUTS, PER, MIN_STAFF, MIN_QUITS, MIN_ATTORNEYS,
@@ -90,7 +90,6 @@ def frame(height, top_in=0.68, bottom_in=0.9, left=0.16, right=0.86):
 
 
 def finish(fig, name, title, subtitle, notes, thru=None, perm=True):
-    h = fig.get_figheight()
     # No text above or below the plot: the post carries the headline, the description and the notes (all listed in facts.md).
     HEADLINES.append((name, title))
     src = SOURCE.format(thru=thru or NEWEST)
@@ -546,7 +545,7 @@ for band in BANDS.values():
 u5 = jan.loc[BANDS["a"]] / jan.sum() * 100
 b(f"Staff with {BANDS['a'].lower()} of service: {u5[SHOCK]:.1f}% of permanent staff in {JAN}, {u5[YEARS[-1]]:.1f}% in January {YEARS[-1]}.")
 
-h(f"Reporting lag: records still arriving for recent months")
+h("Reporting lag: records still arriving for recent months")
 COMPLETE_TO = ym_of(mi(PARTIAL_TO) - LAG_H)    # the newest month with LAG_H months of follow-up
 on_time = db.sql(f"""SELECT substr(eff, 1, 4)::INT yr, sum(n) FILTER (WHERE {LAG_SQL} <= 0) / sum(n) s FROM sep WHERE {KIND['total']}
     AND {LAG_SQL} <= {LAG_H} AND eff BETWEEN '{YEARS[0]}01' AND '{COMPLETE_TO}' GROUP BY 1 ORDER BY 1""").df().set_index("yr").s
@@ -610,7 +609,7 @@ b(f"{SHOCK} alone: departures {dt.sum():,.0f}; " + "; ".join(f"{t.lower()} {dt[t
 fy = db.sql(f"""SELECT substr(eff, 1, 4)::INT yr, sum(n) n FROM '{DATA}/acc.parquet' WHERE appt IN {PERM} AND cat IN ('AC', 'AD', 'AE')
     AND substr(eff, 1, 4)::INT BETWEEN {YEARS[0]} AND {LAST_FULL} GROUP BY 1 ORDER BY 1""").df().set_index("yr").n
 table("2025_hires_and_staff", pd.DataFrame({"new hires (whole year)": fy, "permanent staff in January": staff_y}).rename_axis("year").fillna(0).astype(int))
-b(f"New hires, permanent appointments, whole years: " + "; ".join(f"{y} {v:,.0f}" for y, v in fy.items())
+b("New hires, permanent appointments, whole years: " + "; ".join(f"{y} {v:,.0f}" for y, v in fy.items())
   + f". {SHOCK}: {fy[SHOCK] / fy[BASE_YEARS].mean():.0%} of the {BASE} average ({fy[BASE_YEARS].mean():,.0f}).")
 
 h(f"Hiring compared with normal ({MONTH_SPAN})")
@@ -842,7 +841,7 @@ pool = db.sql(f"""SELECT substr(snap, 1, 4)::INT yr, sum(n) FILTER (WHERE {SURE}
 table("retirement_eligible_staff", pool.rename(columns={"lo": "eligible (at least)", "hi": "eligible (at most)", "known": "staff with age and service", "staff": "all permanent staff"}).rename_axis("January of").astype(int))
 b("Retirement-eligible permanent staff each January (at least to at most, and share of staff): " + "; ".join(
     f"{y} {r.lo:,.0f}-{r.hi:,.0f} ({r.lo / r.known:.1%}-{r.hi / r.known:.1%})" for y, r in pool.iterrows()))
-b(f"Staff with no age or years of service reported, left out of the shares: " + "; ".join(f"{y} {r.staff - r.known:,.0f}" for y, r in pool.iterrows()))
+b("Staff with no age or years of service reported, left out of the shares: " + "; ".join(f"{y} {r.staff - r.known:,.0f}" for y, r in pool.iterrows()))
 chg = pool.lo.diff()
 base_chg = chg.loc[BASE_YEARS[1]:SHOCK]   # January-to-January changes up to January SHOCK
 b(f"Change in the eligible pool (at least) from one January to the next: January {SHOCK} to January {YEARS[-1]} {chg[YEARS[-1]]:+,.0f} "
@@ -1026,7 +1025,7 @@ for p1 in (str(YEARS[-1]),):
     b(f"Occupations pulling the {p1} young share down most through the mix: " + "; ".join(
         f"{o} {sname.get(o, '').title()} ({s0[o]:.1%} of {BASE} hires -> {s1[o]:.1%}; {y0[o]:.0%} young) {v * 100:+.2f}" for o, v in top.items()))
     top_w = within_c.sort_values().head(5)
-    b(f"Occupations pulling it down most within the occupation: " + "; ".join(
+    b("Occupations pulling it down most within the occupation: " + "; ".join(
         f"{o} {sname.get(o, '').title()} ({y0[o]:.0%} -> {y1[o]:.0%} young) {v * 100:+.2f}" for o, v in top_w.items()))
 
 # Education of new hires (edu_acc.parquet): OPM's education bracket at hire. A degree is a rough proxy for skills, and
@@ -1051,7 +1050,7 @@ known_e = el.dropna(subset=["lvl"]).pivot(index="yr", columns="lvl", values="n")
 sh_e = known_e.div(known_e.sum(axis=1), axis=0)
 deg = sh_e["graduate degree"] + sh_e["bachelor's"]
 table("education_of_new_hires", sh_e.assign(**{"bachelor's or more": deg}).round(3).rename_axis("year (January-August)"))
-b(f"Share of new hires with a bachelor's degree or more: " + "; ".join(f"{y} {v:.1%}" for y, v in deg.items())
+b("Share of new hires with a bachelor's degree or more: " + "; ".join(f"{y} {v:.1%}" for y, v in deg.items())
   + f". {BASE} average {deg[BASE_YEARS].mean():.1%}.")
 for lv in ("graduate degree", "bachelor's", "some college", "high school or less"):
     b(f"Share with {lv}: " + "; ".join(f"{y} {v:.1%}" for y, v in sh_e[lv].items()))
@@ -1071,7 +1070,7 @@ for cut in EDU_CHECK:
       f"{BASE} average {x[BASE_YEARS].mean():.1%} (range {x[BASE_YEARS].min():.1%} to {x[BASE_YEARS].max():.1%}); {SHOCK} {x[SHOCK]:.1%}; {YEARS[-1]}* {x[YEARS[-1]]:.1%}.")
 xe = db.sql(f"""SELECT substr(eff, 1, 4)::INT yr, sum(n) FILTER (WHERE {DEGREE}) / sum(n) FILTER (WHERE lvl IS NOT NULL) s FROM edu_acc
     WHERE {WINDOW} AND agency_code <> 'HS' GROUP BY 1 ORDER BY 1""").df().set_index("yr").s
-b(f"Bachelor's or more, Homeland Security (HS) left out: " + "; ".join(f"{y} {v:.1%}" for y, v in xe.items()) + f". {BASE} average {xe[BASE_YEARS].mean():.1%}.")
+b("Bachelor's or more, Homeland Security (HS) left out: " + "; ".join(f"{y} {v:.1%}" for y, v in xe.items()) + f". {BASE} average {xe[BASE_YEARS].mean():.1%}.")
 ENF = "1801"   # general inspection, investigation, enforcement and compliance: ICE's deportation officers are most of DHS's hires in it lately
 ef = db.sql(f"""SELECT substr(eff, 1, 4)::INT yr, sum(n) n, sum(n) FILTER (WHERE {DEGREE}) / sum(n) FILTER (WHERE lvl IS NOT NULL) s FROM edu_acc
     WHERE {WINDOW} AND agency_code = 'HS' AND occ = '{ENF}' GROUP BY 1 ORDER BY 1""").df().set_index("yr")
@@ -1218,7 +1217,7 @@ for ds in ("separations", "accessions", "employment"):
 table("years_of_service_check", sw.rename(columns={"Y": "veterans", "N": "non-veterans"}).round(3).reset_index().assign(file=lambda d: d.file.map(month))
       .set_index(["ds", "file"]).rename_axis(["file type", f"file (share where OPM's years of service match the leave service date within {SCD_TOL} years)"]))
 v_ = sc[(sc.ds == "employment") & (sc.vet == "Y")].set_index("file").sort_index()
-b(f"Veteran permanent staff, average years of service, OPM's field vs from the leave service date: "
+b("Veteran permanent staff, average years of service, OPM's field vs from the leave service date: "
   + "; ".join(f"{month(f)} {v_.loc[f, 'opm']:.1f} vs {v_.loc[f, 'scd']:.1f}" for f in v_.index if mi(SWITCH) - 2 <= mi(f) <= mi(SWITCH)) + ".")
 b("So every years-of-service figure in this file (bands, retirement eligibility, prior service at hire, the new-hire cohorts) is computed from "
   "the leave service date in every file, putting all years on OPM's definition (Outside sources). Using OPM's field as reported would mix two "

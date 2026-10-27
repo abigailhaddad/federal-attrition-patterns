@@ -31,28 +31,16 @@ every claim and whether it held.
 
 ## Data (`data/`, git-ignored)
 
-`extract.py` reads OPM EHRI's HuggingFace mirror (`impactproject/opm-ehri-data`), newest version of each monthly file, and writes:
-
-- `sep.parquet`: separations from every file since January 2015, by agency, component, occupation, years of service,
-  appointment type and education.
-- `emp.parquet`: January headcount, 2015 on (same detail). `hc.parquet`: monthly headcount, November 2024 on.
-- `acc.parquet`: hires and transfers in, 2015 on. `rookie_*.parquet`: new hires and their early departures since September 2023.
-- `acc_ice_cbp.parquet`, `sep_ice_cbp.parquet`: ICE and CBP hires and separations from every file since September 2025, with
-  pay plan and exact years of service (chart 1).
-- `age_sep.parquet`, `age_acc.parquet`, `age_emp.parquet`: departures, hires and January staff by age bracket and whole years of
-  service, 2015 on (retirement eligibility, former employees coming back, young hires). `agency_names.parquet`: agency names.
-- `edu_acc.parquet`: new hires by education bracket, agency and occupation, 2015 on. Education at hire is recorded unreliably at some
-  agencies (degree-required jobs recorded below a bachelor's); `build.py` leaves those agencies out (`EDU_BAD` in `config.py`) and shows
-  the result with other cutoffs too.
-- `sources/usajobs_ice_1801_1811.parquet`: ICE's USAJOBS postings for series 1801 and 1811 (the usajobs_historical archive),
-  which `build.py` uses to check chart 1's job label (deportation officers and criminal investigators).
+`extract.py` reads OPM EHRI's HuggingFace mirror (`impactproject/opm-ehri-data`), the newest version of each monthly file, and
+writes small aggregates to `data/` (its header lists them). It also saves ICE's USAJOBS postings for series 1801 and 1811, which
+`build.py` uses to check chart 1's job label. The cache in `data/cache/` is named by file version, so a month OPM republishes is
+read again on the next run.
 
 Years of service are computed from the leave service date (`service_computation_date_leave`) in every file, not read from
 OPM's `length_of_service_years`. OPM's field switched definition, without a note: from the March 2026 files on it equals the time
 since that date, military time included (OPM's [documented definition](https://www.opm.gov/data/datasets/Files/763/50647e85-a9ae-4123-8866-022059c5f340.pdf)); before, it often left military time out. Using the field as
-reported would put 2026 departures on one definition and the January staff they're divided by on the other. `scd_check.parquet`
-records, per file, how often the two agree, and `facts.md` reports when the switch happened. `asis_*.parquet` has both measures on the same
-records, and `tables/years_of_service_as_published.csv` shows what the field as published would do: 2026's 20+ years quit rate would
+reported would put 2026 departures on one definition and the January staff they're divided by on the other. `facts.md` reports
+when the switch happened, and `tables/years_of_service_as_published.csv` shows what the field as published would do: 2026's 20+ years quit rate would
 look like a record and prior service among non-veteran new hires like it doubled.
 
 Chart 1 and the fall-class comparison match departures to hires without person IDs, which OPM's public files don't have: a
@@ -62,7 +50,5 @@ Two other data problems are handled in code and reported in `facts.md`: years of
 start date (about 7,000 departures in OPM's June 2024-April 2025 files) and counts as not reported; and records for recent months
 keep arriving in later files, far more since late 2025, so the partial year is also shown with an estimate and range once late
 records arrive (`LAG_H`, `LAG_SAMPLE` in `config.py`).
-
-The cache in `data/cache/` is named by file version, so a month OPM republishes is read again on the next run.
 
 Settings shared by both scripts (periods, thresholds, service bands) are in `config.py`; definitions (permanent appointments, departure types) are at the top of `build.py`. Every number in `facts.md` and on the charts is computed from the data or taken from `config.py`: `check_literals.py`, which `build.py` runs at the end, fails if a digit is typed into the text.
