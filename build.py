@@ -753,6 +753,23 @@ table("2026_departures_by_service_and_education", pd.DataFrame({"January staff":
       f"{k}, {YEARS[-1]}*": edu_pace[k][YEARS[-1]].round(2) for k in ("total", "quit", "retire")} | {
       f"{k}, x the {BASE} high": (edu_pace[k][YEARS[-1]] / edu_pace[k][BASE_YEARS].max(axis=1)).round(2) for k in ("total", "quit", "retire")}).rename_axis(f"group ({RATE} per month, {MONTH_SPAN})"))
 
+# Who the mid-career graduate-degree quits are: attorneys (a JD counts as a professional degree), VA's clinicians, CDC, everyone else.
+CLINICAL = ("0602", "0185", "0660", "0180", "0610", "0601", "0685")   # physicians, social workers, pharmacists, psychologists, nurses, health scientists, public health
+CDC_CODE = "HE39"
+EDU6 = f"{BANDS['b']}, graduate degree"
+GRAD_SPLIT = (f"CASE WHEN {ATT} THEN 'Attorneys, every agency' WHEN agency_code = 'VA' AND occupational_series_code IN {CLINICAL} "
+              f"THEN 'VA doctors, nurses and other clinicians' WHEN agency_subelement_code = '{CDC_CODE}' THEN 'CDC' ELSE 'Everyone else' END")
+gs_pace, gs_staff, gs_n = window_pace(GRAD_SPLIT, f"({BAND_LABEL}) = '{BANDS['b']}' AND ({EDU}) = 'graduate degree'")
+gq, gn = gs_pace["quit"], gs_n["quit"]
+gs = pd.DataFrame({"January staff": gs_staff[YEARS[-1]].astype(int), f"quits, {YEARS[-1]}*": gn[YEARS[-1]].astype(int),
+                   f"quits, {BASE} average": gn[BASE_YEARS].mean(axis=1).round(0).astype(int), f"quit rate, {YEARS[-1]}*": gq[YEARS[-1]].round(2),
+                   f"x the {BASE} high": (gq[YEARS[-1]] / gq[BASE_YEARS].max(axis=1)).round(2)})
+gs = gs.sort_values(f"x the {BASE} high", ascending=False)
+gs["extra quits vs the usual rate"] = (gn[YEARS[-1]] - gq[BASE_YEARS].mean(axis=1) * gs_staff[YEARS[-1]] * int(LAST_M) / PER).round(0).astype(int)
+b(f"{EDU6} quits, split: " + "; ".join(f"{g}: {r[f'quits, {YEARS[-1]}*']:,.0f} vs a usual {r[f'quits, {BASE} average']:,.0f}, {r[f'x the {BASE} high']:.2f}x its old high"
+                                        for g, r in gs.iterrows()) + ".")
+table("2026_grad_degree_quits_split", gs.rename_axis(f"{EDU6} ({RATE} per month, {MONTH_SPAN})"))
+
 h(f"Attorneys (same months, {MONTH_SPAN}, unless noted)")
 qa = att_pace["quit"]
 b(f"Attorney quits: {att_n['quit'].loc['Attorneys', YEARS[-1]]:,.0f} people, {qa.loc['Attorneys', YEARS[-1]]:.2f} {RATE} per month, "
@@ -786,7 +803,6 @@ table("2026_quits_vs_own_high_by_occupation", pd.DataFrame({"name": [sname.get(c
 # each row shaded against its own range.
 ATT_HIGH = 2
 ATC_CODE = "2152"   # air traffic control
-EDU6 = f"{BANDS['b']}, graduate degree"
 all_q = window_pace("'All permanent staff'")[0]["quit"]
 ag_hot = ag[ag.x >= ATT_HIGH].index
 rows6 = [("All permanent staff", all_q.loc["All permanent staff"]), ("Attorneys, every agency", att_pace["quit"].loc["Attorneys"])] \
