@@ -65,10 +65,10 @@ check(f"IRS tax examiners who left, {JAN} on", f"{irs_all['count'].sum():,}", r"
 irs = irs_all[eff.between(INAUG, f"{Y}12")]   # chart 2: the whole of Y
 check(f"IRS tax examiners who left in {Y} (chart 2)", f"{irs['count'].sum():,}", rf"IRS tax examiners\*\* \([\d,]+ staff in {JAN}\): ([\d,]+) left")
 check("... of them through DRP", f"{irs[irs.drp_indicator == 'Y']['count'].sum():,}", r"IRS tax examiners.*?deferred resignation \(drp\) [\d.]+% \(([\d,]+)\)")
-att = sep[(sep.occupational_series_code == "0905") & (sep.separation_category_code == "SC") & (sep.drp_indicator != "Y")
+att = sep[(sep.occupational_series_code == "0905") & (sep.separation_category_code == "SC")
           & eff.between(newest[:4] + "01", newest)]
 check(f"Attorney quits, January-{label(newest)}", f"{att['count'].sum():,}", r"Attorney quits: ([\d,]+) people")
-old = sep[(los >= BAND_CUTS[1]) & (sep.separation_category_code == "SC") & (sep.drp_indicator != "Y") & eff.between(newest[:4] + "01", newest)]
+old = sep[(los >= BAND_CUTS[1]) & (sep.separation_category_code == "SC") & eff.between(newest[:4] + "01", newest)]
 check(f"Quits by staff with {OLD}, {PY}*", f"{old['count'].sum():,}", rf"{re.escape(OLD)}, quit: {PY}\* [\d.]+ \(([\d,]+) people\)")
 
 # ICE's new officers (chart 1): GL pay plan, series 1801/1811, hired ICE_FROM on with under NEW_HIRE_LOS years of service.

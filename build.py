@@ -239,7 +239,8 @@ finish(fig, "2_how_people_left", f"How five occupations lost staff in {SHOCK}",
         "which includes removals for discipline or performance, and deaths.",
         "Retirement includes disability retirement. Transfers to other agencies are not counted."])
 
-KIND = {"quit": "cat = 'SC' AND drp <> 'Y'", "retire": "cat IN ('SD', 'SE', 'SG') AND drp <> 'Y'", "total": f"cat NOT IN {TRANSFERS}"}
+# Quits include the DRP exits OPM coded as quits; retirements leave DRP out (in 2025 DRP was coded both ways).
+KIND = {"quit": "cat = 'SC'", "retire": "cat IN ('SD', 'SE', 'SG') AND drp <> 'Y'", "total": f"cat NOT IN {TRANSFERS}"}
 
 # ---- Reporting lag: records for a month keep arriving in later files, and since late 2025 far more of them do ----
 # A month counts as complete with the records that arrive within LAG_H months (lag = file month - effective month).
@@ -407,7 +408,7 @@ ok4r = r20[YEARS[-1]] * LAG_FACTOR["retire"][0] < r20[BASE_YEARS].mean()   # "re
 finish(fig, "4_leaving_pace_by_service", claim("Chart 4 title", ok7q and ok4r, f"Long-serving staff are quitting at about their {PEAK7} peak; retirements are lower",
                                                f"Long-serving staff: quits {r7:.2f} times their {YEARS[0]}-{SHOCK - 1} high, retirements {r20[YEARS[-1]] / r20[BASE_YEARS].mean():.2f} times their average"),
        f"Permanent employees who left per month, {RATE} on staff in January",
-       [f"{MONTH_SPAN.replace('-', ' through ')} of every year. Each row is shaded against its own range. All departures include DRP exits; quits and retirements don't.",
+       [f"{MONTH_SPAN.replace('-', ' through ')} of every year. Each row is shaded against its own range. All departures include DRP exits, and quits include those OPM coded as quits; retirements don't include DRP exits.",
         f"Transfers to other agencies are not counted. Retirement includes disability retirement. Records for recent months are still arriving: "
         f"once they do, {YEARS[-1]}* figures are likely {(lo4 - 1) * 100:.0f}-{(hi4 - 1) * 100:.0f}% higher."])
 
@@ -825,7 +826,7 @@ for edge in (0.5, 1.5 + len(ag_hot)):   # gaps around the attorney block
     ax.axhline(edge, color=SURFACE, lw=5)
 finish(fig, "6_attorney_quits", head6,
        f"Permanent employees who quit per month, {RATE} on staff in January",
-       [f"{MONTH_SPAN.replace('-', ' through ')} of every year. Each row is shaded against its own range. DRP exits are not counted as quits.",
+       [f"{MONTH_SPAN.replace('-', ' through ')} of every year. Each row is shaded against its own range. Quits include DRP exits that OPM coded as quits.",
         f"Attorneys: occupational series {ATT_CODE} (general attorney); the agencies shown are those with {MIN_ATTORNEYS}+ attorneys whose attorneys are quitting at "
         f"{ATT_HIGH}+ times their {BASE} high. Air traffic controllers: series {ATC_CODE}, every agency. Graduate degree: master's, professional or doctorate.",
         f"Records for recent months are still arriving: once they do, {YEARS[-1]}* quits are likely {(LAG_FACTOR['quit'][1] - 1) * 100:.0f}-{(LAG_FACTOR['quit'][2] - 1) * 100:.0f}% higher."])
@@ -1242,7 +1243,7 @@ b("So every years-of-service figure in this file (bands, retirement eligibility,
 AS_SEP, AS_ACC, AS_EMP = (f"'{DATA}/asis_{t}.parquet'" for t in ("sep", "acc", "emp"))
 asis = {}
 for col in ("band_opm", "band_scd"):
-    q_ = db.sql(f"""SELECT substr(eff, 1, 4)::INT yr, sum(n) q FROM {AS_SEP} WHERE {WINDOW} AND cat = 'SC' AND drp <> 'Y' AND {col} = 'c'
+    q_ = db.sql(f"""SELECT substr(eff, 1, 4)::INT yr, sum(n) q FROM {AS_SEP} WHERE {WINDOW} AND cat = 'SC' AND {col} = 'c'
         GROUP BY 1""").df().set_index("yr").q
     st_ = db.sql(f"SELECT substr(snap, 1, 4)::INT yr, sum(n) st FROM {AS_EMP} WHERE {col} = 'c' GROUP BY 1").df().set_index("yr").st
     pr_ = db.sql(f"""SELECT substr(eff, 1, 4)::INT yr, sum(n) FILTER (WHERE {col.replace('band', 'prior')}) / sum(n) s FROM {AS_ACC}

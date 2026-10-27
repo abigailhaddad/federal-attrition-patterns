@@ -9,8 +9,8 @@
 | IRS tax examiners who left, January 2025 on | 5,218 | 5,218 | yes |
 | IRS tax examiners who left in 2025 (chart 2) | 4,689 | 4,689 | yes |
 | ... of them through DRP | 3,185 | 3,185 | yes |
-| Attorney quits, January-August 2026 | 1,523 | 1,523 | yes |
-| Quits by staff with 20+ years, 2026* | 2,347 | 2,347 | yes |
+| Attorney quits, January-August 2026 | 1,533 | 1,533 | yes |
+| Quits by staff with 20+ years, 2026* | 2,446 | 2,446 | yes |
 | ICE new officers hired since September 2025 | 3,865 | 3,865 | yes |
 | ... of them who had left | 1,139 | 1,139 | yes |
 | Permanent staff, January 2025 | 2,164,400 | 2,164,400 | yes |
