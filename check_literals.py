@@ -3,7 +3,7 @@
 import ast, re, sys
 
 ALLOWED = [r"^\d+\. ",          # section numbers that match chart numbers ("3. Who left each year")
-           r"SHA-256", r"\bsha256\b", r"(?i)chart \d", r"charts \d and \d", r"= 100\b", r"source_\w+\.png", r"[\w.]+\.(png|pdf|html|json|parquet|csv)"]
+           r"SHA-256", r"\bsha256\b", r"(?i)chart \d", r"charts \d and \d", r"= 100\b", r"[\w.]+\.(png|pdf|html|json|parquet|csv)"]
 TEXT_CALLS = {"b", "h", "append", "text", "set_title", "annotate", "set_xlabel", "set_ylabel"}   # facts.md writers and chart text; finish() is checked from its 3rd argument on (title, subtitle, notes)
 
 

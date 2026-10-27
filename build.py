@@ -1,12 +1,11 @@
 # The charts and facts for the federal attrition post, from the OPM EHRI aggregates extract.py writes to data/.
 # python3 build.py  ->  charts/*.png with the CSV behind each, charts/facts.md, charts/rookie_screen.csv
-import hashlib, json, re, subprocess, sys
+import re, subprocess, sys
 from pathlib import Path
 import duckdb
 from config import (MONTHLY_FROM, AT_WILL, TERM_STARTS, DEGREE_SERIES, EDU_BAD, EDU_CHECK, MIN_DEGREE_HIRES, SCD_TOL, FIRST, INAUG, ICE_FROM, USAJOBS_FROM, LOS_CUTS, BAND_CUTS, PER, MIN_STAFF, MIN_QUITS, MIN_ATTORNEYS,
                     MIN_SCREEN_HIRES, FLOW_GAP_PCT, LOW_INDEX, RECOVERY, GLITCH_PCT, NONPERM_ATTORNEY,
-                    ICEHIRES_COMMIT, AUTUMN, NEW_HIRE_LOS, SCREEN_RISES, ROOKIE_FROM, YOUNG, ELIGIBLE_SURE, ELIGIBLE_MAYBE, MIN_AGENCY_HIRES, TOP, MAX_LOS, LAG_H, LAG_SAMPLE, CUSHIONS)
-import fitz   # PyMuPDF: reads the source PDFs and saves the cited pages as images
+                    AUTUMN, NEW_HIRE_LOS, SCREEN_RISES, ROOKIE_FROM, YOUNG, ELIGIBLE_SURE, ELIGIBLE_MAYBE, MIN_AGENCY_HIRES, TOP, MAX_LOS, LAG_H, LAG_SAMPLE, CUSHIONS)
 import numpy as np
 import pandas as pd
 import matplotlib
@@ -1144,10 +1143,10 @@ none_pc = ag_pc[ag_pc.pc == 0]
 b(f"Agencies with {MIN_STAFF:,}+ staff in {month(aw.index[-1])}: {len(ag_pc)}; with anyone in Schedule Policy/Career: {(ag_pc.pc > 0).sum()}; with no one yet: {len(none_pc)}, "
   + "including " + "; ".join(f"{agname.get(a_, a_).title()} ({a_}, {r.n:,.0f} staff)" for a_, r in none_pc.head(6).iterrows()) + ".")
 pc_share = db.sql(f"""SELECT agency_code a, sum(n) n, sum(n) FILTER (WHERE appt IN {PC_SQL}) pc FROM '{DATA}/hc.parquet' WHERE snap = '{aw.index[-1]}'
-    GROUP BY 1 HAVING sum(n) FILTER (WHERE appt IN {PC_SQL}) > 0""").df().set_index("a")
+    GROUP BY 1 HAVING sum(n) FILTER (WHERE appt IN {PC_SQL}) > 0 ORDER BY 1""").df().set_index("a")   # agency order breaks ties below
 table("schedule_policy_career_share_by_agency", pc_share.assign(name=[agname.get(a_, a_).title() for a_ in pc_share.index], share=(pc_share.pc / pc_share.n).round(3))
       .rename(columns={"n": f"staff, {month(aw.index[-1])}", "pc": "in Schedule Policy/Career", "share": "share of staff"})
-      .astype({f"staff, {month(aw.index[-1])}": int, "in Schedule Policy/Career": int}).sort_values("share of staff", ascending=False)[["name", f"staff, {month(aw.index[-1])}", "in Schedule Policy/Career", "share of staff"]].rename_axis("agency"))
+      .astype({f"staff, {month(aw.index[-1])}": int, "in Schedule Policy/Career": int}).sort_values("share of staff", ascending=False, kind="stable")[["name", f"staff, {month(aw.index[-1])}", "in Schedule Policy/Career", "share of staff"]].rename_axis("agency"))
 table("schedule_policy_career_by_occupation", pd.DataFrame(pc_oc, columns=["series", "in Schedule Policy/Career"]).assign(name=lambda d: d.series.map(lambda o: sname.get(o, "").title()))
       .set_index("series").pipe(lambda d: pd.concat([d, pd.DataFrame({"in Schedule Policy/Career": [pc_hires], "name": ["(hires into it, any file)"]}, index=["hires"])])))
 ser = {"Schedule C": aw["44"], "Noncareer and limited-term SES": aw["55"] + aw["60"]}   # Schedule Policy/Career has its own chart (10)
@@ -1175,9 +1174,9 @@ finish(fig, "9_at_will_appointments", claim("Chart 9 title", yr_in[max(yr_in)] >
 
 # ---- 10. Schedule Policy/Career: who is in it, by agency ------------------------------------------------------
 PC_TOP = 10
-pc_share = pc_share.assign(s_=pc_share.pc / pc_share.n).sort_values("s_", ascending=False)   # the agency where it's the largest share comes first
+pc_share = pc_share.assign(s_=pc_share.pc / pc_share.n).sort_values("s_", ascending=False, kind="stable")   # the agency where it's the largest share comes first
 top_pc_name = agname.get(pc_share.index[0], pc_share.index[0]).title().replace(" Of ", " of ").replace(" And ", " and ")
-top10 = pc_share.sort_values("pc", ascending=False).head(PC_TOP).iloc[::-1]
+top10 = pc_share.sort_values("pc", ascending=False, kind="stable").head(PC_TOP).iloc[::-1]
 pc_tot = pcs.iloc[-1]
 fig, ax = frame(0.42 * PC_TOP + 0.9, top_in=0.3, bottom_in=0.3, left=0.3, right=0.86)
 ax.barh(range(PC_TOP), top10.pc, color=TYPE_COLOR["Layoff (RIF)"], height=0.62)
@@ -1375,22 +1374,6 @@ if len(rec):   # a recovery with few or no arrivals is staff moved in from other
     table("hiring_back_recovered_occupations", pd.DataFrame({"name": [lab(k) for k in rec.index], f"low ({JAN} = 100)": rec.low_idx.round(1), f"{NEWEST} ({JAN} = 100)": rec["index"].round(1),
           "staff gained since the low": [int(mon.loc[k, mon.columns.max()] - mon.loc[k, low_at[k]]) for k in rec.index], "hires and transfers in since the low": [int(arr[k]) for k in rec.index]}).rename_axis("agency and series"))
 
-# ---- Outside sources: documents saved by extract.py to data/sources/ ----------------------------------------------
-SRC = DATA / "sources"
-sha = lambda name: hashlib.sha256((SRC / name).read_bytes()).hexdigest()[:12]
-
-
-def cited_page(pdf, title, needles, png):
-    """The one page of `pdf` holding `title`; saved to charts/ with title and needles highlighted. Returns its text."""
-    pages = [p for p in fitz.open(SRC / pdf) if p.search_for(title) and all(p.search_for(n) for n in needles)]
-    assert len(pages) == 1, (pdf, title, len(pages))
-    for n in (title, *needles):
-        for r in pages[0].search_for(n):
-            pages[0].add_highlight_annot(r)
-    pages[0].get_pixmap(dpi=110).save(OUT / png)
-    return pages[0].number + 1, pages[0].get_text()
-
-
 h("Suggested chart headlines (not on the images)")
 for name, title in HEADLINES:
     b(f"{name}: {title}")
@@ -1414,36 +1397,8 @@ if unchecked:
 b(f"All {len(chk)} files checked ({', '.join(f'{n} {d}' for d, n in chk.dataset.value_counts().items())}) are the version OPM marks current "
   f"on data.opm.gov and are byte-identical to OPM's download (SHA-256), checked {chk.checked.max()}.")
 
-h("Outside sources (each saved by extract.py; the cited page is saved next to this file with the quoted text highlighted)")
-flat = lambda t: " ".join(re.sub(r"[\x00-\x08\x0b-\x1f]", "", t).split())   # one line, control characters dropped
-OPM_NOTES = ["Retirement-Disability is now included in SG: Retirement-Other.",
-             "Termination or Removal (Discipline/Performance) is now included in SL: Other Separation.",
-             "Death is now included in SL: Other Separation."]
-opm_title = re.search(r"\(Preliminary\) \w+ \d{4}-\w+ \d{4} Separations Dataset", flat(fitz.open(SRC / "opm_separations_notes.pdf")[0].get_text())).group(0)
-pg, _ = cited_page("opm_separations_notes.pdf", opm_title, OPM_NOTES, "source_opm_separation_codes.png")
-b(f"OPM, {opm_title} notes (opm_separations_notes.pdf, sha256 {sha('opm_separations_notes.pdf')}), page {pg}: "
-  + " ".join(f'"Separation category {n}"' for n in OPM_NOTES) + " This is the basis for chart 2's note and for counting SG as retirement and SL as other. "
-  "Image: source_opm_separation_codes.png.")
-pg, text = cited_page("opm_separations_notes.pdf", "Length of Service", ["creditable military service"], "source_opm_length_of_service.png")
-los_def = re.search(r"The number of years of Federal civilian employment, creditable military service, and other service made creditable by specific legislation\.", flat(text)).group(0)
-b(f"OPM, same notes, page {pg}, field LOS (Length of Service): \"{los_def}\" The definition every years-of-service figure here uses "
-  "(computed from the leave service date; Data notes). Image: source_opm_length_of_service.png.")
-
-# OPM republishes past months. versions.parquet counts ICE and CBP records in every version of every file since ICE_FROM.
-ver = db.sql(f"SELECT ds, file, v, sum(n) n FROM '{DATA}/versions.parquet' GROUP BY ALL").df()
-icemap = json.loads((SRC / "icehires_hf_file_map.json").read_text())
-for ds, label in (("accessions", "hire and transfer-in"), ("separations", "separation")):
-    d = ver[ver.ds == ds].pivot(index="file", columns="v", values="n")
-    first, last = d.apply(lambda r: r.dropna().iloc[0], axis=1), d.apply(lambda r: r.dropna().iloc[-1], axis=1)
-    nv = d.notna().sum(axis=1)
-    used = {ym: int(re.search(r"_v(\d+)\.parquet$", p).group(1)) for ym, p in icemap[ds].items() if ym in d.index}
-    memo, now = sum(d.loc[ym, v] for ym, v in used.items()), sum(last[ym] for ym in used)
-    b(f"ICE and CBP {label} records by file month, first version → newest (versions on HuggingFace): "
-      + "; ".join(f"{month(ym)} {first[ym]:,.0f} → {last[ym]:,.0f} (v{d.loc[ym].dropna().index[-1]}, {nv[ym]} version{'s' if nv[ym] > 1 else ''})" for ym in d.index)
-      + f". {int((nv > 1).sum())} of {len(d)} months have been republished; in {int((first > last).sum())} of them the newest version holds fewer records. "
-      f"The icehires memo (file map at commit {ICEHIRES_COMMIT[:7]}) read {memo:,.0f} records for {month(min(used))} to {month(max(used))}; the newest "
-      f"versions hold {now:,.0f} ({now - memo:+,.0f}).")
-
+h("Chart 1's job label")
+SRC = DATA / "sources"
 jobs = db.sql(f"""SELECT series, CASE WHEN positionTitle ILIKE '%deportation officer%' THEN 'Deportation Officer'
         WHEN positionTitle ILIKE '%criminal investigator%' THEN 'Criminal Investigator' ELSE 'other title' END title, count(*) n
     FROM '{SRC}/usajobs_ice_1801_1811.parquet' WHERE payScale = 'GL' GROUP BY ALL ORDER BY ALL""").df()

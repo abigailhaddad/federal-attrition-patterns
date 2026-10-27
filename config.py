@@ -69,11 +69,4 @@ AT_WILL = {"44": "Schedule C", "55": "noncareer SES", "60": "limited-term SES", 
 TERM_STARTS = ("201701", "202101", "202501")   # inauguration months: at-will appointments are compared at the same point in each term
 NONPERM_ATTORNEY = ("40", "48")   # DOJ's nonpermanent attorney appointment codes (excepted service, nonpermanent)
 
-# ---- outside sources, saved to data/sources/ by extract.py ----
-ICEHIRES_COMMIT = "25196e9f5fbe0ea046e4cffab219d12808828f38"   # the icehires memo's file map, as the memo used it
-SOURCES = {
-    # OPM's notes for its April 2024-March 2025 Separations dataset: which old separation codes were folded into SG and SL.
-    "opm_separations_notes.pdf": "https://www.opm.gov/data/datasets/Files/763/50647e85-a9ae-4123-8866-022059c5f340.pdf",
-    "icehires_hf_file_map.json": f"https://raw.githubusercontent.com/abigailhaddad/icehires/{ICEHIRES_COMMIT}/data/hf_file_map.json",
-}
 USAJOBS = "https://pub-317c58882ec04f329b63842c1eb65b0c.r2.dev/data"   # the usajobs_historical archive

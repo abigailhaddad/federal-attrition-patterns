@@ -1,7 +1,7 @@
-# Pull everything build.py needs: OPM EHRI from its HuggingFace mirror (newest version of each monthly file), plus the
-# outside documents the facts quote (data/sources/).
+# Pull everything build.py needs: OPM EHRI from its HuggingFace mirror (newest version of each monthly file), plus ICE's
+# USAJOBS postings for chart 1's job label (data/sources/).
 # python3 extract.py  ->  data/sep.parquet, emp.parquet, hc.parquet, acc.parquet, rookie_*.parquet, *_ice_cbp.parquet,
-#                         versions.parquet, age_*.parquet, asis_*.parquet, sources/
+#                         age_*.parquet, asis_*.parquet, sources/
 # One small aggregate per source file goes to data/cache/ first, so a rerun skips files it already has
 # (HuggingFace rate-limits; a first run makes a few thousand reads and takes hours).
 # age_*.parquet: age bracket by whole years of service (los_y, rounded down, from the leave service date: build.py treats MAX_LOS+ as not
@@ -14,7 +14,7 @@ HF = "impactproject/opm-ehri-data"
 BASE = f"https://huggingface.co/datasets/{HF}/resolve/main"
 DATA, CACHE = Path("data"), Path("data/cache")
 CACHE.mkdir(parents=True, exist_ok=True)
-from config import PERM, SCD_TOL, MAX_LOS, LOS_CUTS, BAND_CUTS, NEW_HIRE_LOS, FIRST, MONTHLY_FROM, ICE_FROM, ROOKIE_FROM, USAJOBS_FROM, SOURCES, USAJOBS
+from config import PERM, SCD_TOL, MAX_LOS, LOS_CUTS, BAND_CUTS, NEW_HIRE_LOS, FIRST, MONTHLY_FROM, ICE_FROM, ROOKIE_FROM, USAJOBS_FROM, USAJOBS
 # Years of service come from the leave service date (service_computation_date_leave), not OPM's length_of_service_years.
 # OPM defines length of service as federal civilian service plus creditable military and other service, and from the
 # March 2026 files on length_of_service_years equals the time since that date for every record. Before (February 2026
@@ -155,13 +155,6 @@ def plan():
                 yield f"asisemp_{ym}_v{v}", f"""SELECT '{ym}' snap, veteran_indicator vet, {band(opm)} band_opm, {band(snap)} band_scd, sum(count::INT) n
                     FROM '{BASE}/{p}' WHERE appointment_type_code IN {PERM} GROUP BY ALL"""
 
-    for ds in ("accessions", "separations"):   # ICE and CBP records in every version OPM has published, for the republishing check
-        for ym, vs in ALL[ds].items():
-            for v, p in vs.items():
-                if ym >= ICE_FROM:
-                    yield f"ver_{ds[:3]}_{ym}_v{v}", f"""SELECT '{ds}' ds, '{ym}' file, {v} v, agency_subelement_code agy_code,
-                        sum(count::INT) n FROM '{BASE}/{p}' WHERE agency_subelement_code IN ('HSBB', 'HSBD') GROUP BY ALL"""
-
 
 PLAN = list(plan())
 con = duckdb.connect()
@@ -187,7 +180,7 @@ if ONLY:
     sys.exit()
 # Combine only the caches this run planned, so a superseded version left in data/cache/ is never counted.
 for out, prefix in (("sep", "sep4_"), ("emp", "emp3_"), ("hc", "hc_"), ("acc", "acc_"), ("rookie_sep", "rookiesep2_"), ("rookie_acc", "rookieacc2_"),
-                    ("acc_ice_cbp", "iceacc2_"), ("sep_ice_cbp", "icesep2_"), ("versions", "ver_"),
+                    ("acc_ice_cbp", "iceacc2_"), ("sep_ice_cbp", "icesep2_"),
                     ("age_sep", "agesep2_"), ("age_acc", "ageacc2_"), ("age_emp", "ageemp2_"), ("agency_names", "agnames_"), ("scd_check", "scdchk_"), ("edu_acc", "eduacc_"),
                     ("asis_sep", "asissep_"), ("asis_acc", "asisacc_"), ("asis_emp", "asisemp_")):
     paths = [f"{CACHE}/{name}.parquet" for name, _ in PLAN if name.startswith(prefix)]
@@ -197,14 +190,8 @@ for out, prefix in (("sep", "sep4_"), ("emp", "emp3_"), ("hc", "hc_"), ("acc", "
     total = "" if out in ("agency_names", "scd_check") else f", sum({'count' if 'ice' in out else 'n'})"
     print(out, con.sql(f"SELECT count(*){total} FROM '{DATA}/{out}.parquet'").fetchone())
 
-# ---- Outside sources, saved to data/sources/ and read by build.py ---------------------------------------------
 SRC = DATA / "sources"
 SRC.mkdir(exist_ok=True)
-for name, url in SOURCES.items():
-    if not (SRC / name).exists():
-        with urllib.request.urlopen(urllib.request.Request(url, headers={"User-Agent": "federal-attrition-patterns"})) as r:
-            (SRC / name).write_bytes(r.read())
-    print(name, (SRC / name).stat().st_size, "bytes")
 # USAJOBS postings (the usajobs_historical archive): what ICE calls its law-enforcement (GL) jobs in series 1801 and 1811.
 if not (SRC / "usajobs_ice_1801_1811.parquet").exists():
     con.execute(f"""COPY (SELECT usajobsControlNumber, positionOpenDate, payScale, positionTitle,
