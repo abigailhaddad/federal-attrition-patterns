@@ -48,7 +48,7 @@ Chart 1 and the fall-class comparison match departures to hires without person I
 departure's hire month is its effective month minus its years of service.
 
 Two other data problems are handled in code and reported in `facts.md`: years of service of `MAX_LOS` (100) or more is a placeholder
-start date (an earlier version of OPM's June 2024-April 2025 files carried a block of them; `facts.md` counts them in the current files) and counts as not reported; and records for recent months
+start date and counts as not reported (in four current files checked, the date column `service_computation_date_leave` has no 124-year placeholder, only 5 records dated 1900-01-01 in 202501 v4, but OPM's own `length_of_service_years` field still carries 124-125 values; this repo uses the date column, and it was not verified that an earlier "about 7,000" figure was in the date column rather than the years field; `facts.md` counts them); and records for recent months
 keep arriving in later files, far more since late 2025, so the partial year is also shown with an estimate and range once late
 records arrive (`LAG_H`, `LAG_SAMPLE` in `config.py`).
 
