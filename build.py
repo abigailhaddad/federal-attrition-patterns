@@ -1524,9 +1524,12 @@ h("Check against OPM's own files (verify_opm.py)")
 chk = pd.read_csv(DATA / "opm_check.csv", dtype=str)
 bad = chk[chk.match != "True"]
 assert bad.empty, bad   # every file read here is OPM's current version, byte for byte
-unchecked = set(db.sql(f"SELECT DISTINCT 'separations', file FROM '{DATA}/sep.parquet'").fetchall()) - set(zip(chk.dataset, chk.file))
+# every file extract.py read, in all three datasets (employment: the January files in emp.parquet and the monthly ones in hc.parquet)
+read_files = set(db.sql(f"""SELECT DISTINCT 'separations', file FROM '{DATA}/sep.parquet' UNION SELECT DISTINCT 'accessions', file FROM '{DATA}/acc.parquet'
+    UNION SELECT DISTINCT 'employment', snap FROM '{DATA}/emp.parquet' UNION SELECT DISTINCT 'employment', snap FROM '{DATA}/hc.parquet'""").fetchall())
+unchecked = read_files - set(zip(chk.dataset, chk.file))
 if unchecked:
-    b(f"Not yet checked against OPM: {len(unchecked)} separations files ({min(f for _, f in unchecked)} to {max(f for _, f in unchecked)}). Run verify_opm.py.")
+    b(f"Not yet checked against OPM: {len(unchecked)} files ({', '.join(f'{d} {f}' for d, f in sorted(unchecked))}). Run verify_opm.py.")
 b(f"All {len(chk)} files checked ({', '.join(f'{n} {d}' for d, n in chk.dataset.value_counts().items())}) are the version OPM marks current "
   f"on data.opm.gov and are byte-identical to OPM's download (SHA-256), checked {chk.checked.max()}.")
 
