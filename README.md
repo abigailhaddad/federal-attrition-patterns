@@ -3,7 +3,7 @@
 Start with `run.ipynb`: it runs everything from OPM's files and shows each chart and the tables behind every number in the post, in the post's order.
 
 ```bash
-pip install duckdb pandas matplotlib numpy
+pip install -r requirements.txt   # pinned versions; pyarrow is needed by spot_check.py
 python3 run.py          # extract, build and spot check, in order (python3 run.py --verify adds verify_opm.py); run.ipynb does the same
 python3 extract.py      # OPM EHRI from HuggingFace plus ICE's USAJOBS postings; slow, resumable (caches each file in data/cache/)
 python3 verify_opm.py   # hashes every file read against OPM's own copy (data.opm.gov); build.py stops if any differs
@@ -11,6 +11,28 @@ python3 build.py        # charts, their CSVs, charts/tables/*.csv, charts/facts.
 python3 spot_check.py   # recomputes the headline numbers from OPM's raw files with separate code -> checks/spot_check.md
 python3 post.py DRAFT.md OUT.docx   # the post as a Word file, each {{chart N}} marker replaced by that chart
 ```
+
+## Rebuilding on GitHub Actions
+
+`.github/workflows/rebuild.yml` re-runs the whole pipeline on a hosted runner and opens a pull request with the regenerated
+`charts/` and `checks/`; it never pushes to the branch it runs on.
+
+```bash
+gh workflow run rebuild.yml                    # incremental: reuses the extract cache
+gh workflow run rebuild.yml -f force_full=true # ignore the cache and read every file again
+gh run watch                                   # follow it
+```
+
+- Secrets: none. `extract.py` reads Hugging Face anonymously and the OPM files are public. (If Hugging Face starts answering 429
+  on the shared runner addresses, the fix is an authenticated request in `extract.py`; the script retries but does not send a token.)
+- Steps: `extract.py`, `verify_opm.py`, `build.py` (runs `check_literals.py`), `spot_check.py`, `check_literals.py`; any failure fails the run
+  and no PR is opened. The extract step stops after 270 minutes and the cache is saved either way, so a rerun picks up where it stopped.
+- Where the result appears: a branch `regen/<run id>` and a PR whose body has the diff stat and the changed lines of `charts/facts.md`.
+  If the repo setting "Allow GitHub Actions to create and approve pull requests" is off, the branch is still pushed and the run's
+  summary prints the compare URL to open the PR by hand.
+- Duration: the first run reads every file and is the slow one; later runs read only files whose version changed.
+  Run it once and check the step times in the Actions log before relying on a schedule.
+- The cache is keyed on the hash of `extract.py` and `config.py`; editing either one means the next run reads everything again.
 
 | File | Shows |
 |---|---|
