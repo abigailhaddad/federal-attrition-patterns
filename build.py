@@ -330,6 +330,11 @@ pace = pace.loc[["All permanent staff"] + list(BANDS.values())]
 
 # Permanent staff each month from MONTHLY_FROM (the monthly headcount files), for the occupation and Schedule Policy/Career checks
 db.execute(f"CREATE VIEW hc AS SELECT * FROM '{DATA}/hc.parquet' WHERE appt IN {PERM}")
+# hc has no January: extract.py reads every January from the employment files (emp). Any month-by-month series (lows, neighbours,
+# month-to-month moves) must use both, or it jumps from December to February and calls the two months neighbours.
+db.execute(f"""CREATE VIEW staff_m_all AS SELECT snap, agency_code, occupational_series_code, appt, n FROM '{DATA}/hc.parquet'
+    UNION ALL SELECT snap, agency_code, occupational_series_code, appt, n FROM '{DATA}/emp.parquet' WHERE snap >= '{MONTHLY_FROM}'""")
+db.execute(f"CREATE VIEW staff_m AS SELECT * FROM staff_m_all WHERE appt IN {PERM}")
 
 
 
@@ -702,7 +707,7 @@ for a in ag_up:   # what the agencies furthest above their average are hiring fo
       f"the occupations with the most extra hires: " + "; ".join(f"{k} {sname.get(k, '').title()} {t.loc[k, YEARS[-1]]:,.0f} vs {t.loc[k, BASE_YEARS].mean():,.0f}"
                                                               for k in extra.index[:3])
       + f" ({extra.head(3).sum() / extra[extra > 0].sum():.0%} of the extra hires in occupations above their average).")
-    hs_ = db.sql(f"SELECT snap, sum(n) n FROM hc WHERE agency_code = '{a}' AND snap >= '{INAUG}' GROUP BY 1 ORDER BY 1").df().set_index("snap").n
+    hs_ = db.sql(f"SELECT snap, sum(n) n FROM staff_m WHERE agency_code = '{a}' AND snap >= '{INAUG}' GROUP BY 1 ORDER BY 1").df().set_index("snap").n
     d12 = ym_of(mi(PARTIAL_TO) - 11)
     dd = db.sql(f"""SELECT sum(n), sum(n) FILTER (WHERE drp = 'Y') FROM sep WHERE agency_code = '{a}' AND cat NOT IN {TRANSFERS}
         AND eff BETWEEN '{d12}' AND '{PARTIAL_TO}'""").fetchone()
@@ -1292,7 +1297,10 @@ def glitches(s_):
     s_, out = s_.dropna().astype(float).copy(), []
     while len(s_) >= 3:
         mid = (s_.shift(1) + s_.shift(-1)) / 2
-        cand = ((s_ - mid) / mid).abs().where((s_ - s_.shift(1)) * (s_.shift(-1) - s_) < 0)
+        # off BOTH neighbours (the smaller of the two gaps), and above both or below both: a real step down that stays down
+        # (December, then a January drop that holds) is not a glitch, however far it is from the neighbours' average
+        off = pd.concat([(s_ - s_.shift(1)).abs() / s_.shift(1), (s_ - s_.shift(-1)).abs() / s_.shift(-1)], axis=1).min(axis=1)
+        cand = off.where((s_ - s_.shift(1)) * (s_.shift(-1) - s_) < 0)
         if cand.isna().all() or cand.max() * 100 < GLITCH_PCT:
             break
         k = cand.idxmax()
@@ -1301,7 +1309,7 @@ def glitches(s_):
     return out
 
 
-agy_m = db.sql("SELECT snap, agency_code a, sum(n) n FROM hc GROUP BY ALL").df().pivot(index="snap", columns="a", values="n")
+agy_m = db.sql("SELECT snap, agency_code a, sum(n) n FROM staff_m GROUP BY ALL").df().pivot(index="snap", columns="a", values="n")
 agy_m = agy_m.loc[:, agy_m.median() >= MIN_STAFF]   # in smaller agencies a few people move a month by GLITCH_PCT
 FLAGGED = [(a, k, v, mid) for a in agy_m.columns for k, v, mid in glitches(agy_m[a])]
 for a, k, v, mid in FLAGGED:
@@ -1327,7 +1335,7 @@ npd = {k: db.sql(q).fetchone()[0] or 0 for k, q in {
     "left": f"SELECT sum(n) FROM '{DATA}/sep.parquet' WHERE agency_code = 'DJ' AND {ATT} AND appt IN {NP} AND eff BETWEEN '{AFTER}' AND '{PARTIAL_TO}'",
     "in": f"SELECT sum(n) FROM '{DATA}/acc.parquet' WHERE agency_code = 'DJ' AND {ATT} AND appt IN {NP} AND eff BETWEEN '{AFTER}' AND '{PARTIAL_TO}'"}.items()}
 np_gap = (npd["now"] - npd["jan25"]) - (npd["in"] - npd["left"])
-mo = db.sql(f"""SELECT snap, sum(n) FILTER (WHERE appt IN {PERM}) p, sum(n) FILTER (WHERE appt IN {NP}) np FROM '{DATA}/hc.parquet'
+mo = db.sql(f"""SELECT snap, sum(n) FILTER (WHERE appt IN {PERM}) p, sum(n) FILTER (WHERE appt IN {NP}) np FROM staff_m_all
     WHERE agency_code = 'DJ' AND {ATT} GROUP BY 1 ORDER BY 1""").df().set_index("snap").diff()
 big = mo.np.idxmin()
 assert np_gap < 0 and abs(np_gap + ((doj['now'] - doj['jan25']) - (doj['in'] - doj['left']))) < 0.15 * abs(np_gap)
@@ -1378,7 +1386,7 @@ b(f"Codes present {YEARS[0]}-{YEARS[-1]}: {', '.join(sorted(codes.cat.unique()))
   "appear in no year, so OPM's folding of them into SG and SL applies to the whole history here.")
 
 h(f"Occupations that stand out ({MIN_STAFF:,}+ permanent staff; {JAN} = 100; {NEWEST})")
-mon = db.sql(f"SELECT snap, {K} k, sum(n) n FROM hc WHERE snap >= '{AFTER}' GROUP BY ALL").df().pivot(index="k", columns="snap", values="n")
+mon = db.sql(f"SELECT snap, {K} k, sum(n) n FROM staff_m WHERE snap >= '{AFTER}' GROUP BY ALL").df().pivot(index="k", columns="snap", values="n")
 for a, k, *_ in FLAGGED:   # flagged agency-months don't count as an occupation's low
     mon.loc[mon.index.str.startswith(a + " "), k] = np.nan
 occ2 = occ.join(mon.min(axis=1).rename("low")).join(names_occ := db.sql(f"SELECT {K} k, any_value(series) se FROM emp GROUP BY 1").df().set_index("k"))
