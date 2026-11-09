@@ -809,7 +809,7 @@ b(f"Attorney quits by agency ({MIN_ATTORNEYS}+ attorneys): " + "; ".join(f"{a} {
 table("2026_attorney_quits_by_agency", ag.assign(name=[agname.get(a, a).title() for a in ag.index]).rename(columns={"staff": f"attorneys, January {YEARS[-1]}",
       "quits": f"quits, {MONTH_SPAN} {YEARS[-1]}", "x": f"quit pace, x the {BASE} high"})[["name", f"attorneys, January {YEARS[-1]}", f"quits, {MONTH_SPAN} {YEARS[-1]}", f"quit pace, x the {BASE} high"]]
       .astype({f"attorneys, January {YEARS[-1]}": int, f"quits, {MONTH_SPAN} {YEARS[-1]}": int}).round(2).rename_axis("agency"))
-table("2026_occupations_below_old_high", pd.Series({"occupations compared": len(ratio), "quitting below their 2015-2024 high": int((ratio < 1).sum()),
+table("2026_occupations_below_old_high", pd.Series({"occupations compared": len(ratio), f"quitting below their {BASE} high": int((ratio < 1).sum()),
       "median, x the old high": round(ratio.median(), 2)}).rename("value").to_frame())
 table("2026_quits_vs_own_high_by_occupation", pd.DataFrame({"name": [sname.get(c, "").title() for c in ratio.index], f"quits, {MONTH_SPAN} {YEARS[-1]}": occ_n["quit"].loc[ratio.index, YEARS[-1]].astype(int),
       f"quit pace, x the {BASE} high": ratio.round(2)}).rename_axis("series"))
