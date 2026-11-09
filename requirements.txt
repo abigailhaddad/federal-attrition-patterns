@@ -1,6 +1,0 @@
-# Versions the charts were built and checked with (Python 3.14). pyarrow is needed by spot_check.py (pandas.read_parquet).
-duckdb==1.5.1
-pandas==3.0.1
-numpy==2.4.3
-matplotlib==3.11.0
-pyarrow==23.0.1
