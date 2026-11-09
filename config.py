@@ -28,8 +28,10 @@ BAND_CUTS = (5, 20)             # the charts' three bands: under 5, 5-20, 20+ (e
 
 # ---- cohorts ----
 AUTUMN = ("09", "12")     # rookie screen: hires in these months (September-December), followed to the next PARTIAL_TO month
-MAX_LOS = 100             # years of service at or above this are a placeholder start date (OPM's June 2024-April 2025 files carry
-                          # ~7,000 departures with 124-125 years), so they count as not reported
+MAX_LOS = 100             # years of service at or above this are a placeholder start date, so they count as not reported. In four current
+                          # files (202406, 202410, 202501, 202504) the date column has no 124-year placeholder (5 records dated 1900-01-01 in
+                          # 202501 v4) but OPM's length_of_service_years still carries 124-125 values; years here come from the date column.
+                          # Not verified: whether an earlier "~7,000" figure was in the date column or the years field. facts.md counts them.
 NEW_HIRE_LOS = 0.25       # a new hire with under this many years (3 months) of service at hire had no prior federal service
 SCREEN_RISES = (5, 10)    # rookie screen: count components whose share leaving rose by at least these many points
 
